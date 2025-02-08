@@ -1,0 +1,65 @@
+<!DOCTYPE SpriteDecomposer>
+<sprites image="Custom Edited - Dragon Ball Customs - SSJB Goku.png" transparentColor="EDF9FF">
+ <animation title="Idle" delay="150">
+  <cut w="26" x="39" y="151" h="52" row="1" col="1"/>
+ </animation>
+ <animation title="Dash" delay="150">
+  <cut w="32" x="292" y="158" h="45" row="1" col="1"/>
+  <cut w="51" x="341" y="167" h="29" row="1" col="1"/>
+  <cut w="48" x="398" y="171" h="22" row="1" col="1"/>
+ </animation>
+ <animation title="Up" delay="150">
+  <cut w="32" x="79" y="216" h="54" row="1" col="1"/>
+ </animation>
+ <animation title="Apex" delay="150">
+  <cut w="31" x="122" y="215" h="46" row="1" col="1"/>
+ </animation>
+ <animation title="Down" delay="150">
+  <cut w="25" x="205" y="218" h="55" row="1" col="1"/>
+ </animation>
+ <animation title="Guard" delay="150">
+  <cut w="33" x="242" y="232" h="41" row="1" col="1"/>
+  <cut w="28" x="37" y="299" h="48" row="1" col="1"/>
+  <cut w="36" x="258" y="297" h="50" row="1" col="1"/>
+  <cut w="30" x="589" y="295" h="51" row="1" col="1"/>
+  <cut w="31" x="82" y="483" h="47" row="1" col="1"/>
+ </animation>
+ <animation title="Left" delay="150">
+  <cut w="31" x="291" y="225" h="48" row="1" col="1"/>
+ </animation>
+ <animation title="Right" delay="150">
+  <cut w="41" x="331" y="229" h="40" row="1" col="1"/>
+ </animation>
+ <animation title="Fast" delay="150">
+  <cut w="51" x="384" y="237" h="29" row="1" col="1"/>
+ </animation>
+ <animation title="Teleport" delay="150">
+  <cut w="30" x="448" y="226" h="47" row="1" col="1"/>
+  <cut w="30" x="494" y="226" h="47" row="1" col="1"/>
+  <cut w="21" x="545" y="226" h="47" row="1" col="1"/>
+  <cut w="33.5" x="575.5" y="220.5" h="51.5" row="1" col="1"/>
+  <cut w="33.5" x="611.5" y="215.5" h="58.5" row="1" col="1"/>
+  <cut w="38.5" x="654.5" y="221.5" h="51.5" row="1" col="1"/>
+ </animation>
+ <animation title="Charge" delay="150">
+  <cut w="28" x="37" y="398" h="50" row="1" col="1"/>
+  <cut w="53" x="83" y="399" h="49" row="1" col="1"/>
+  <cut w="57" x="150" y="381" h="67" row="1" col="1"/>
+  <cut w="60" x="225" y="382" h="66" row="1" col="1"/>
+ </animation>
+ <animation title="Charge_Loop" delay="150">
+  <cut w="57" x="150" y="381" h="67" row="1" col="1"/>
+  <cut w="60" x="225" y="382" h="66" row="1" col="1"/>
+ </animation>
+ <animation title="Hit" delay="150">
+  <cut w="33" x="40" y="480" h="50" row="1" col="1"/>
+  <cut w="32" x="121" y="484" h="46" row="1" col="1"/>
+  <cut w="32" x="163" y="484" h="46" row="1" col="1"/>
+  <cut w="30" x="207" y="486" h="44" row="1" col="1"/>
+  <cut w="46" x="246" y="490" h="40" row="1" col="1"/>
+  <cut w="32" x="300" y="485" h="45" row="1" col="1"/>
+ </animation>
+ <animation title="Dead" delay="150">
+  <cut w="54" x="346" y="506" h="25" row="1" col="1"/>
+ </animation>
+</sprites>

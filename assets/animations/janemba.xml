@@ -1,0 +1,81 @@
+<!DOCTYPE SpriteDecomposer>
+<sprites image="janemba.png" transparentColor="EFECFF">
+ <animation title="Idle_Fat" delay="90">
+  <cut w="117" x="63" y="142" h="106" row="1" col="1"/>
+  <cut w="117" x="186" y="142" h="106" row="1" col="1"/>
+  <cut w="117" x="309" y="141" h="107" row="1" col="1"/>
+  <cut w="117" x="432" y="142" h="106" row="1" col="1"/>
+ </animation>
+ <animation title="Transform" delay="90">
+  <cut w="131" x="573" y="146" h="103" row="1" col="1"/>
+  <cut w="129" x="717" y="157" h="101" row="1" col="1"/>
+  <cut w="107" x="868" y="160" h="84" row="1" col="1"/>
+  <cut w="110" x="994" y="195" h="50" row="1" col="1"/>
+  <cut w="116" x="73" y="309" h="49" row="1" col="1"/>
+  <cut w="120" x="213" y="308" h="52" row="1" col="1"/>
+  <cut w="77" x="356" y="307" h="57" row="1" col="1"/>
+  <cut w="69" x="461" y="290" h="68" row="1" col="1"/>
+  <cut w="81" x="564" y="287" h="74" row="1" col="1"/>
+  <cut w="56" x="677" y="287" h="71" row="1" col="1"/>
+  <cut w="67" x="759" y="276" h="83" row="1" col="1"/>
+  <cut w="66" x="859" y="277" h="83" row="1" col="1"/>
+  <cut w="61" x="948" y="277" h="83" row="1" col="1"/>
+  <cut w="66" x="1032" y="279" h="83" row="1" col="1"/>
+  <cut w="61" x="1126" y="278" h="83" row="1" col="1"/>
+  <cut w="54" x="1211" y="278" h="83" row="1" col="1"/>
+  <cut w="45" x="73" y="389" h="83" row="1" col="1"/>
+  <cut w="34" x="144" y="394" h="78" row="1" col="1"/>
+  <cut w="31" x="201" y="413" h="58" row="1" col="1"/>
+  <cut w="31" x="255" y="413" h="58" row="1" col="1"/>
+  <cut w="30" x="305" y="419" h="52" row="1" col="1"/>
+  <cut w="31" x="353" y="420" h="52" row="1" col="1"/>
+  <cut w="29" x="406" y="420" h="52" row="1" col="1"/>
+  <cut w="28" x="456" y="420" h="52" row="1" col="1"/>
+  <cut w="40" x="496" y="420" h="52" row="1" col="1"/>
+  <cut w="41" x="551" y="420" h="52" row="1" col="1"/>
+  <cut w="37" x="619" y="420" h="52" row="1" col="1"/>
+  <cut w="37" x="671" y="420" h="52" row="1" col="1"/>
+  <cut w="37" x="730" y="420" h="52" row="1" col="1"/>
+  <cut w="37" x="789" y="420" h="52" row="1" col="1"/>
+  <cut w="37" x="849" y="420" h="52" row="1" col="1"/>
+ </animation>
+ <animation title="Idle" delay="90">
+  <cut w="41" x="958" y="420" h="52" row="1" col="1"/>
+  <cut w="37" x="1012" y="420" h="52" row="1" col="1"/>
+  <cut w="36" x="1066" y="420" h="52" row="1" col="1"/>
+  <cut w="40" x="1117" y="420" h="52" row="1" col="1"/>
+  <cut w="39" x="1177" y="420" h="52" row="1" col="1"/>
+ </animation>
+ <animation title="Left" delay="90">
+  <cut w="43" x="85" y="611" h="48" row="1" col="1"/>
+ </animation>
+ <animation title="Right" delay="90">
+  <cut w="51" x="151" y="620" h="39" row="1" col="1"/>
+ </animation>
+ <animation title="Jump" delay="90">
+  <cut w="49" x="262" y="617" h="42" row="1" col="1"/>
+  <cut w="28" x="332" y="575" h="58" row="1" col="1"/>
+  <cut w="46" x="381" y="559" h="46" row="1" col="1"/>
+  <cut w="43" x="442" y="583" h="55" row="1" col="1"/>
+  <cut w="49" x="502" y="617" h="42" row="1" col="1"/>
+ </animation>
+ <animation title="Up" delay="90">
+  <cut w="28" x="332" y="575" h="58" row="1" col="1"/>
+ </animation>
+ <animation title="Apex" delay="90">
+  <cut w="46" x="381" y="559" h="46" row="1" col="1"/>
+ </animation>
+ <animation title="Down" delay="90">
+  <cut w="43" x="442" y="583" h="55" row="1" col="1"/>
+ </animation>
+ <animation title="Dash" delay="90">
+  <cut w="50" x="581" y="619" h="29" row="1" col="1"/>
+  <cut w="51" x="637" y="623" h="22" row="1" col="1"/>
+ </animation>
+ <animation title="Teleport" delay="90">
+  <cut w="29.5" x="701.5" y="599.5" h="57.5" row="1" col="1"/>
+  <cut w="34.5" x="736.5" y="599.5" h="57.5" row="1" col="1"/>
+  <cut w="32" x="775" y="602" h="53" row="1" col="1"/>
+  <cut w="34.5" x="817.5" y="599.5" h="55.5" row="1" col="1"/>
+ </animation>
+</sprites>
