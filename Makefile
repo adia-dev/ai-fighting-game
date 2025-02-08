@@ -46,14 +46,11 @@ DIST_EXTENSION := html
 SRC_FILES := $(shell find $(SRC_DIR) -type f -name '*.cpp' -not -name '.null-ls*')
 OBJ_FILES := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRC_FILES))
 
-# Code formatting style
-CLANG_FORMAT_STYLE := LLVM
-
 # Phony targets
-.PHONY: all clean bear format run wasm_run
+.PHONY: all clean bear run wasm_run
 
 # Default target to build everything
-all: format app wasm
+all: app wasm
 
 # Compile .cpp files to .o files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
@@ -79,9 +76,6 @@ wasm: $(SRC_FILES)
 wasm_run: wasm
 	emrun $(DIST_DIR)/$(DIST).html
 
-# Format code with clang-format
-format:
-	clang-format -i -style=$(CLANG_FORMAT_STYLE) src/**/*.cpp src/**/*.hpp
 
 # Generate compilation database for tools like bear
 bear: clean

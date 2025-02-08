@@ -2,6 +2,7 @@
 #include "Game.hpp"
 #include "Animation.hpp"
 #include "PiksyAnimationLoader.hpp"
+#include "r.hpp"
 #include <SDL.h>
 #include <iostream>
 
@@ -28,8 +29,7 @@ Game::Game() {
   m_resourceManager = std::make_unique<ResourceManager>(m_renderer->get());
 
   // Load the spritesheet.
-  auto texture = m_resourceManager->getTexture(
-      "/Users/adiadev/Projects/Dev/C++/piksy/resources/textures/alex.png");
+  auto texture = m_resourceManager->getTexture(R::texture("alex.png"));
 
   // Create animator objects.
   m_animatorPlayer = std::make_unique<Animator>(texture->get());
@@ -38,8 +38,8 @@ Game::Game() {
   // Load the walk animation.
   Animation walkAnimation;
   try {
-    walkAnimation = PiksyAnimationLoader::loadAnimation(
-        "/Users/adiadev/Projects/Dev/C++/piksy/exports/Walk.json");
+    walkAnimation =
+        PiksyAnimationLoader::loadAnimation(R::animation("Walk.json"));
   } catch (const std::exception &e) {
     std::cerr << "Failed to load animation: " << e.what() << "\n";
     // Fallback: create a default one-frame animation.
