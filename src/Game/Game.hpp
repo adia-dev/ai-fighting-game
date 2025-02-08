@@ -2,6 +2,7 @@
 #include "Core/Config.hpp"
 #include "Core/SDLContext.hpp"
 #include "Game/Character.hpp"
+#include "Game/FightSystem.hpp"
 #include "Rendering/Renderer.hpp"
 #include "Rendering/Window.hpp"
 #include "Resources/ResourceManager.hpp"
@@ -35,5 +36,6 @@ private:
   std::unique_ptr<Character> m_player;
   std::unique_ptr<Character> m_enemy;
 
+  FightSystem m_fightSystem;
   Camera m_camera;
 };

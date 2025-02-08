@@ -1,5 +1,6 @@
 #include "Character.hpp"
 #include "Core/Input.hpp"
+#include "Data/Animation.hpp"
 #include <SDL.h>
 #include <algorithm>
 #include <iostream>
@@ -13,7 +14,7 @@ SDL_Rect Character::getCollisionRect() const {
   SDL_Rect collisionRect;
   bool foundCollisionBox = false;
   for (const auto &hb : hitboxes) {
-    if (!hb.enabled || hb.dataType != 1)
+    if (!hb.enabled || hb.dataType != HitboxType::Collision)
       continue;
     SDL_Rect hbRect = {hb.x, hb.y, hb.w, hb.h};
     if (!foundCollisionBox) {

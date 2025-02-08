@@ -166,8 +166,18 @@ void Game::update(float deltaTime) {
                      m_enemy->getCollisionRect())) {
     resolveCollision(*m_player, *m_enemy);
     applyCollisionImpulse(*m_player, *m_enemy, m_config.defaultMoveForce);
-    m_player->applyDamage(1);
+  }
+
+  bool hitLanded = m_fightSystem.processHit(*m_player, *m_enemy);
+  if (hitLanded) {
     m_enemy->applyDamage(1);
+    std::cout << "[DEBUG] Player hit enemy!\n";
+  }
+
+  hitLanded = m_fightSystem.processHit(*m_enemy, *m_player);
+  if (hitLanded) {
+    m_player->applyDamage(1);
+    std::cout << "[DEBUG] Enemy hit player!\n";
   }
 }
 

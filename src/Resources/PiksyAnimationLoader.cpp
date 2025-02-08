@@ -77,9 +77,9 @@ loadAnimation(const std::string &jsonFilePath) {
                   "hitbox_0_data_type")) {
             hitbox.dataType =
                 frameJson["frame_data"]["custom_data"]["hitbox_0_data_type"]
-                    .get<int>();
+                    .get<HitboxType>();
           } else {
-            hitbox.dataType = 0;
+            hitbox.dataType = HitboxType::Collision;
           }
           frame.hitboxes.push_back(hitbox);
         }

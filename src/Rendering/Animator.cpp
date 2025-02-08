@@ -1,3 +1,4 @@
+#include "Data/Animation.hpp"
 #include <Rendering/Animator.hpp>
 #include <iostream>
 
@@ -66,7 +67,7 @@ void Animator::render(SDL_Renderer *renderer, int x, int y, float scale) {
 
   // Draw collision hitboxes (scaled) for debugging.
   for (const auto &hitbox : frame.hitboxes) {
-    if (hitbox.enabled && hitbox.dataType == 1) {
+    if (hitbox.enabled && hitbox.dataType == HitboxType::Collision) {
       SDL_Rect hitRect;
       hitRect.x = x + static_cast<int>(hitbox.x * scale);
       hitRect.y = y + static_cast<int>(hitbox.y * scale);

@@ -1,4 +1,5 @@
 #pragma once
+#include "FightEnums.hpp"
 #include <SDL.h>
 #include <string>
 #include <vector>
@@ -7,7 +8,7 @@ struct Hitbox {
   std::string id;
   bool enabled;
   int x, y, w, h;
-  int dataType;
+  HitboxType dataType;
 };
 
 struct Frame {
@@ -15,6 +16,7 @@ struct Frame {
   float duration_ms;
   bool flipped;
   std::vector<Hitbox> hitboxes;
+  FramePhase phase;
 };
 
 struct Animation {
