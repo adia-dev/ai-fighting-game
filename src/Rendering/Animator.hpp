@@ -11,6 +11,11 @@ public:
   // Construct an Animator using a spritesheet texture.
   Animator(SDL_Texture *texture);
 
+  // Construct an Animator using a spritesheet texture
+  // and forwards the animations
+  Animator(SDL_Texture *texture,
+           const std::map<std::string, Animation> &animations);
+
   // Add an animation with a key.
   void addAnimation(const std::string &key, const Animation &anim);
 

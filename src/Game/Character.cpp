@@ -9,12 +9,12 @@ Character::Character(Animator *anim)
     : animator(anim), health(100), maxHealth(100), onGround(false),
       isMoving(false), groundFrames(0), inputDirection(0) {}
 
-SDL_Rect Character::getCollisionRect() const {
+SDL_Rect Character::getHitboxRect(HitboxType type) const {
   const auto &hitboxes = animator->getCurrentHitboxes();
   SDL_Rect collisionRect;
   bool foundCollisionBox = false;
   for (const auto &hb : hitboxes) {
-    if (!hb.enabled || hb.type != HitboxType::Collision)
+    if (!hb.enabled || hb.type != type)
       continue;
     SDL_Rect hbRect = {hb.x, hb.y, hb.w, hb.h};
     if (!foundCollisionBox) {
@@ -32,8 +32,8 @@ SDL_Rect Character::getCollisionRect() const {
     }
   }
   if (!foundCollisionBox) {
-    collisionRect = animator->getCurrentFrameRect();
-    Logger::debug("No collision hitbox found; using full frame rect.");
+    collisionRect = {0, 0, 0, 0};
+    Logger::debug("No collision hitbox found; using full empty rect.");
   }
   collisionRect.x += static_cast<int>(mover.position.x);
   collisionRect.y += static_cast<int>(mover.position.y);
@@ -93,10 +93,10 @@ void Character::jump() {
   Logger::debug("Jump initiated.");
 }
 
-void Character::applyDamage(int damage) {
+void Character::applyDamage(int damage, bool survive) {
   health -= damage;
   if (health < 0)
-    health = 0;
+    health = survive ? 1 : 0;
   Logger::debug("Damage applied: " + std::to_string(damage) +
                 ". Health now: " + std::to_string(health));
 }
@@ -135,7 +135,7 @@ void Character::update(float deltaTime) {
 void Character::render(SDL_Renderer *renderer, float cameraScale) {
   animator->render(renderer, static_cast<int>(mover.position.x),
                    static_cast<int>(mover.position.y), cameraScale);
-  SDL_Rect collRect = getCollisionRect();
+  SDL_Rect collRect = getHitboxRect();
   SDL_Rect healthBar = {collRect.x, collRect.y - 10, collRect.w, 5};
   float ratio = static_cast<float>(health) / maxHealth;
   SDL_Rect healthFill = {healthBar.x, healthBar.y,
@@ -149,8 +149,8 @@ void Character::render(SDL_Renderer *renderer, float cameraScale) {
 }
 
 void Character::updateFacing(const Character &target) {
-  SDL_Rect myRect = getCollisionRect();
-  SDL_Rect targetRect = target.getCollisionRect();
+  SDL_Rect myRect = getHitboxRect();
+  SDL_Rect targetRect = target.getHitboxRect();
   int myCenterX = myRect.x + myRect.w / 2;
   int targetCenterX = targetRect.x + targetRect.w / 2;
   animator->setFlip(targetCenterX < myCenterX);

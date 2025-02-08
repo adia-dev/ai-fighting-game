@@ -2,10 +2,16 @@
 #include "Rendering/Animator.hpp"
 #include "Core/Logger.hpp"
 #include "Data/Animation.hpp"
+#include <utility>
 
 Animator::Animator(SDL_Texture *texture)
     : m_texture(texture), m_currentFrameIndex(0), m_timer(0.0f), m_flip(false),
       m_reverse(false) {}
+
+Animator::Animator(SDL_Texture *texture,
+                   const std::map<std::string, Animation> &animations)
+    : m_texture(texture), m_animations(animations), m_currentFrameIndex(0),
+      m_timer(0.0f), m_flip(false), m_reverse(false) {}
 
 void Animator::addAnimation(const std::string &key, const Animation &anim) {
   m_animations.emplace(key, anim);

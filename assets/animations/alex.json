@@ -1103,7 +1103,7 @@
                     "y": 3044
                 }
             ],
-            "loop": true,
+            "loop": false,
             "name": "Block"
         },
         {
@@ -1120,11 +1120,155 @@
                             {
                                 "data_key": "hitbox_0_data",
                                 "enabled": true,
+                                "h": 114,
+                                "id": "hitbox_0",
+                                "w": 63,
+                                "x": 7,
+                                "y": 6
+                            }
+                        ],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 120,
+                    "phase": 2,
+                    "w": 113,
+                    "x": 3,
+                    "y": 8803
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 108,
+                                "id": "hitbox_0",
+                                "w": 75,
+                                "x": 10,
+                                "y": 9
+                            }
+                        ],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 118,
+                    "phase": 2,
+                    "w": 123,
+                    "x": 153,
+                    "y": 8805
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 104,
+                                "id": "hitbox_0",
+                                "w": 72,
+                                "x": 8,
+                                "y": 7
+                            }
+                        ],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 114,
+                    "phase": 2,
+                    "w": 113,
+                    "x": 322,
+                    "y": 8809
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 103,
+                                "id": "hitbox_0",
+                                "w": 56,
+                                "x": 22,
+                                "y": 5
+                            }
+                        ],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 110,
+                    "phase": 3,
+                    "w": 130,
+                    "x": 471,
+                    "y": 8813
+                }
+            ],
+            "loop": false,
+            "name": "Hit"
+        },
+        {
+            "frames": [
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": {
+                            "hitbox_0_data_type": 1,
+                            "hitbox_1_data_type": 2
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
                                 "h": 103,
                                 "id": "hitbox_0",
                                 "w": 78,
-                                "x": 22,
+                                "x": 17,
                                 "y": 10
+                            },
+                            {
+                                "data_key": "hitbox_1_data",
+                                "enabled": true,
+                                "h": 50,
+                                "id": "hitbox_1",
+                                "w": 50,
+                                "x": 45,
+                                "y": 13
                             }
                         ],
                         "metadata": {
@@ -1146,7 +1290,8 @@
                     "flipped": false,
                     "frame_data": {
                         "custom_data": {
-                            "hitbox_0_data_type": 1
+                            "hitbox_0_data_type": 1,
+                            "hitbox_1_data_type": 2
                         },
                         "hitboxes": [
                             {
@@ -1157,6 +1302,15 @@
                                 "w": 79,
                                 "x": 17,
                                 "y": 10
+                            },
+                            {
+                                "data_key": "hitbox_1_data",
+                                "enabled": true,
+                                "h": 50,
+                                "id": "hitbox_1",
+                                "w": 50,
+                                "x": 44,
+                                "y": 14
                             }
                         ],
                         "metadata": {
@@ -1178,7 +1332,8 @@
                     "flipped": false,
                     "frame_data": {
                         "custom_data": {
-                            "hitbox_0_data_type": 1
+                            "hitbox_0_data_type": 1,
+                            "hitbox_1_data_type": 2
                         },
                         "hitboxes": [
                             {
@@ -1189,6 +1344,15 @@
                                 "w": 85,
                                 "x": 18,
                                 "y": 8
+                            },
+                            {
+                                "data_key": "hitbox_1_data",
+                                "enabled": true,
+                                "h": 50,
+                                "id": "hitbox_1",
+                                "w": 50,
+                                "x": 46,
+                                "y": 9
                             }
                         ],
                         "metadata": {
@@ -1210,7 +1374,8 @@
                     "flipped": false,
                     "frame_data": {
                         "custom_data": {
-                            "hitbox_0_data_type": 1
+                            "hitbox_0_data_type": 1,
+                            "hitbox_1_data_type": 2
                         },
                         "hitboxes": [
                             {
@@ -1221,6 +1386,15 @@
                                 "w": 81,
                                 "x": 16,
                                 "y": 11
+                            },
+                            {
+                                "data_key": "hitbox_1_data",
+                                "enabled": true,
+                                "h": 50,
+                                "id": "hitbox_1",
+                                "w": 50,
+                                "x": 48,
+                                "y": 13
                             }
                         ],
                         "metadata": {
@@ -1242,7 +1416,8 @@
                     "flipped": false,
                     "frame_data": {
                         "custom_data": {
-                            "hitbox_0_data_type": 1
+                            "hitbox_0_data_type": 1,
+                            "hitbox_1_data_type": 2
                         },
                         "hitboxes": [
                             {
@@ -1253,6 +1428,15 @@
                                 "w": 91,
                                 "x": 13,
                                 "y": 12
+                            },
+                            {
+                                "data_key": "hitbox_1_data",
+                                "enabled": true,
+                                "h": 50,
+                                "id": "hitbox_1",
+                                "w": 50,
+                                "x": 38,
+                                "y": 11
                             }
                         ],
                         "metadata": {
@@ -1274,7 +1458,8 @@
                     "flipped": false,
                     "frame_data": {
                         "custom_data": {
-                            "hitbox_0_data_type": 1
+                            "hitbox_0_data_type": 1,
+                            "hitbox_1_data_type": 2
                         },
                         "hitboxes": [
                             {
@@ -1285,6 +1470,15 @@
                                 "w": 89,
                                 "x": 14,
                                 "y": 6
+                            },
+                            {
+                                "data_key": "hitbox_1_data",
+                                "enabled": true,
+                                "h": 50,
+                                "id": "hitbox_1",
+                                "w": 50,
+                                "x": 43,
+                                "y": 11
                             }
                         ],
                         "metadata": {
@@ -1306,7 +1500,8 @@
                     "flipped": false,
                     "frame_data": {
                         "custom_data": {
-                            "hitbox_0_data_type": 1
+                            "hitbox_0_data_type": 1,
+                            "hitbox_1_data_type": 2
                         },
                         "hitboxes": [
                             {
@@ -1316,6 +1511,15 @@
                                 "id": "hitbox_0",
                                 "w": 87,
                                 "x": 13,
+                                "y": 8
+                            },
+                            {
+                                "data_key": "hitbox_1_data",
+                                "enabled": true,
+                                "h": 50,
+                                "id": "hitbox_1",
+                                "w": 50,
+                                "x": 43,
                                 "y": 8
                             }
                         ],
@@ -1338,7 +1542,8 @@
                     "flipped": false,
                     "frame_data": {
                         "custom_data": {
-                            "hitbox_0_data_type": 1
+                            "hitbox_0_data_type": 1,
+                            "hitbox_1_data_type": 2
                         },
                         "hitboxes": [
                             {
@@ -1349,6 +1554,15 @@
                                 "w": 88,
                                 "x": 15,
                                 "y": 6
+                            },
+                            {
+                                "data_key": "hitbox_1_data",
+                                "enabled": true,
+                                "h": 50,
+                                "id": "hitbox_1",
+                                "w": 50,
+                                "x": 43,
+                                "y": 8
                             }
                         ],
                         "metadata": {
@@ -1370,7 +1584,8 @@
                     "flipped": false,
                     "frame_data": {
                         "custom_data": {
-                            "hitbox_0_data_type": 1
+                            "hitbox_0_data_type": 1,
+                            "hitbox_1_data_type": 2
                         },
                         "hitboxes": [
                             {
@@ -1381,6 +1596,15 @@
                                 "w": 76,
                                 "x": 23,
                                 "y": 9
+                            },
+                            {
+                                "data_key": "hitbox_1_data",
+                                "enabled": true,
+                                "h": 50,
+                                "id": "hitbox_1",
+                                "w": 50,
+                                "x": 41,
+                                "y": 12
                             }
                         ],
                         "metadata": {
@@ -1402,7 +1626,8 @@
                     "flipped": false,
                     "frame_data": {
                         "custom_data": {
-                            "hitbox_0_data_type": 1
+                            "hitbox_0_data_type": 1,
+                            "hitbox_1_data_type": 2
                         },
                         "hitboxes": [
                             {
@@ -1413,6 +1638,15 @@
                                 "w": 79,
                                 "x": 20,
                                 "y": 8
+                            },
+                            {
+                                "data_key": "hitbox_1_data",
+                                "enabled": true,
+                                "h": 50,
+                                "id": "hitbox_1",
+                                "w": 50,
+                                "x": 46,
+                                "y": 7
                             }
                         ],
                         "metadata": {
@@ -1434,7 +1668,8 @@
                     "flipped": false,
                     "frame_data": {
                         "custom_data": {
-                            "hitbox_0_data_type": 1
+                            "hitbox_0_data_type": 1,
+                            "hitbox_1_data_type": 2
                         },
                         "hitboxes": [
                             {
@@ -1445,6 +1680,15 @@
                                 "w": 73,
                                 "x": 26,
                                 "y": 11
+                            },
+                            {
+                                "data_key": "hitbox_1_data",
+                                "enabled": true,
+                                "h": 50,
+                                "id": "hitbox_1",
+                                "w": 50,
+                                "x": 44,
+                                "y": 12
                             }
                         ],
                         "metadata": {
@@ -1466,7 +1710,8 @@
                     "flipped": false,
                     "frame_data": {
                         "custom_data": {
-                            "hitbox_0_data_type": 1
+                            "hitbox_0_data_type": 1,
+                            "hitbox_1_data_type": 2
                         },
                         "hitboxes": [
                             {
@@ -1477,6 +1722,15 @@
                                 "w": 76,
                                 "x": 22,
                                 "y": 11
+                            },
+                            {
+                                "data_key": "hitbox_1_data",
+                                "enabled": true,
+                                "h": 50,
+                                "id": "hitbox_1",
+                                "w": 50,
+                                "x": 45,
+                                "y": 13
                             }
                         ],
                         "metadata": {
@@ -1952,6 +2206,6 @@
             "name": "Walk"
         }
     ],
-    "timestamp": 1739055846,
+    "timestamp": 1739058032,
     "version": 1
 }

@@ -29,9 +29,6 @@ void Game::initResourceManager() {
 void Game::initAnimations() {
   auto texture = m_resourceManager->getTexture(R::texture("alex.png"));
 
-  m_animatorPlayer = std::make_unique<Animator>(texture->get());
-  m_animatorEnemy = std::make_unique<Animator>(texture->get());
-
   std::map<std::string, Animation> loadedAnimations;
   try {
     loadedAnimations =
@@ -41,38 +38,10 @@ void Game::initAnimations() {
     Logger::error("Failed to load animations: " + std::string(e.what()));
   }
 
-  if (loadedAnimations.find("Walk") != loadedAnimations.end()) {
-    m_animatorPlayer->addAnimation("Walk", loadedAnimations.at("Walk"));
-    m_animatorEnemy->addAnimation("Walk", loadedAnimations.at("Walk"));
-  }
-
-  if (loadedAnimations.find("Attack") != loadedAnimations.end()) {
-    m_animatorPlayer->addAnimation("Attack", loadedAnimations.at("Attack"));
-    m_animatorEnemy->addAnimation("Attack", loadedAnimations.at("Attack"));
-  }
-
-  if (loadedAnimations.find("Attack 2") != loadedAnimations.end()) {
-    m_animatorPlayer->addAnimation("Attack 2", loadedAnimations.at("Attack 2"));
-    m_animatorEnemy->addAnimation("Attack 2", loadedAnimations.at("Attack 2"));
-  }
-
-  if (loadedAnimations.find("Attack 3") != loadedAnimations.end()) {
-    m_animatorPlayer->addAnimation("Attack 3", loadedAnimations.at("Attack 3"));
-    m_animatorEnemy->addAnimation("Attack 3", loadedAnimations.at("Attack 3"));
-  }
-
-  if (loadedAnimations.find("Idle") != loadedAnimations.end()) {
-    m_animatorPlayer->addAnimation("Idle", loadedAnimations.at("Idle"));
-    m_animatorEnemy->addAnimation("Idle", loadedAnimations.at("Idle"));
-  } else if (loadedAnimations.find("Walk") != loadedAnimations.end()) {
-    Animation idleAnim = loadedAnimations.at("Walk");
-    if (!idleAnim.frames.empty()) {
-      idleAnim.frames.resize(1);
-      idleAnim.loop = false;
-    }
-    m_animatorPlayer->addAnimation("Idle", idleAnim);
-    m_animatorEnemy->addAnimation("Idle", idleAnim);
-  }
+  m_animatorPlayer =
+      std::make_unique<Animator>(texture->get(), loadedAnimations);
+  m_animatorEnemy =
+      std::make_unique<Animator>(texture->get(), loadedAnimations);
 
   m_animatorPlayer->play("Idle");
   m_animatorEnemy->play("Idle");
@@ -167,8 +136,8 @@ void Game::update(float deltaTime) {
     Logger::debug("Enemy hit player!");
   }
 
-  if (CollisionSystem::checkCollision(m_player->getCollisionRect(),
-                                      m_enemy->getCollisionRect())) {
+  if (CollisionSystem::checkCollision(m_player->getHitboxRect(),
+                                      m_enemy->getHitboxRect())) {
     CollisionSystem::resolveCollision(*m_player, *m_enemy);
     CollisionSystem::applyCollisionImpulse(*m_player, *m_enemy,
                                            m_config.defaultMoveForce);
@@ -216,7 +185,7 @@ void Game::render() {
 
     ch.animator->render(m_renderer->get(), renderX, renderY, m_camera.scale);
 
-    SDL_Rect collRect = ch.getCollisionRect();
+    SDL_Rect collRect = ch.getHitboxRect();
     collRect.x = static_cast<int>(offset.x + collRect.x * m_camera.scale);
     collRect.y = static_cast<int>(offset.y + collRect.y * m_camera.scale);
     SDL_Rect healthBar = {collRect.x, collRect.y - 10, collRect.w, 5};

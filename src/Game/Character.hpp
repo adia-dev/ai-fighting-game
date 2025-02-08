@@ -29,7 +29,7 @@ public:
 
   Character(Animator *anim);
 
-  SDL_Rect getCollisionRect() const;
+  SDL_Rect getHitboxRect(HitboxType type = HitboxType::Collision) const;
 
   void handleInput();
 
@@ -39,7 +39,7 @@ public:
 
   void jump();
 
-  void applyDamage(int damage);
+  void applyDamage(int damage, bool survive = false);
 
   void updateFacing(const Character &target);
 

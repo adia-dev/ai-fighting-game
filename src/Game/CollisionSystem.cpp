@@ -6,8 +6,8 @@ bool CollisionSystem::checkCollision(const SDL_Rect &a, const SDL_Rect &b) {
 }
 
 void CollisionSystem::resolveCollision(Character &a, Character &b) {
-  SDL_Rect rectA = a.getCollisionRect();
-  SDL_Rect rectB = b.getCollisionRect();
+  SDL_Rect rectA = a.getHitboxRect();
+  SDL_Rect rectB = b.getHitboxRect();
 
   if (!checkCollision(rectA, rectB))
     return;
@@ -38,8 +38,8 @@ void CollisionSystem::resolveCollision(Character &a, Character &b) {
 
 void CollisionSystem::applyCollisionImpulse(Character &a, Character &b,
                                             float impulseStrength) {
-  SDL_Rect rectA = a.getCollisionRect();
-  SDL_Rect rectB = b.getCollisionRect();
+  SDL_Rect rectA = a.getHitboxRect();
+  SDL_Rect rectB = b.getHitboxRect();
 
   // Compute centers of the collision rectangles.
   Vector2f centerA(rectA.x + rectA.w / 2.0f, rectA.y + rectA.h / 2.0f);
