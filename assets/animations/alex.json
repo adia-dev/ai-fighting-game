@@ -7,8 +7,20 @@
                     "enabled": true,
                     "flipped": false,
                     "frame_data": {
-                        "custom_data": null,
-                        "hitboxes": [],
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 103,
+                                "id": "hitbox_0",
+                                "w": 78,
+                                "x": 22,
+                                "y": 10
+                            }
+                        ],
                         "metadata": {
                             "duration_ms": 100,
                             "is_key_frame": false,
@@ -26,8 +38,20 @@
                     "enabled": true,
                     "flipped": false,
                     "frame_data": {
-                        "custom_data": null,
-                        "hitboxes": [],
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 106,
+                                "id": "hitbox_0",
+                                "w": 79,
+                                "x": 17,
+                                "y": 10
+                            }
+                        ],
                         "metadata": {
                             "duration_ms": 100,
                             "is_key_frame": false,
@@ -45,8 +69,20 @@
                     "enabled": true,
                     "flipped": false,
                     "frame_data": {
-                        "custom_data": null,
-                        "hitboxes": [],
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 107,
+                                "id": "hitbox_0",
+                                "w": 85,
+                                "x": 18,
+                                "y": 8
+                            }
+                        ],
                         "metadata": {
                             "duration_ms": 100,
                             "is_key_frame": false,
@@ -64,8 +100,20 @@
                     "enabled": true,
                     "flipped": false,
                     "frame_data": {
-                        "custom_data": null,
-                        "hitboxes": [],
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 103,
+                                "id": "hitbox_0",
+                                "w": 81,
+                                "x": 16,
+                                "y": 11
+                            }
+                        ],
                         "metadata": {
                             "duration_ms": 100,
                             "is_key_frame": false,
@@ -83,8 +131,20 @@
                     "enabled": true,
                     "flipped": false,
                     "frame_data": {
-                        "custom_data": null,
-                        "hitboxes": [],
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 100,
+                                "id": "hitbox_0",
+                                "w": 91,
+                                "x": 13,
+                                "y": 12
+                            }
+                        ],
                         "metadata": {
                             "duration_ms": 100,
                             "is_key_frame": false,
@@ -102,8 +162,20 @@
                     "enabled": true,
                     "flipped": false,
                     "frame_data": {
-                        "custom_data": null,
-                        "hitboxes": [],
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 105,
+                                "id": "hitbox_0",
+                                "w": 89,
+                                "x": 14,
+                                "y": 6
+                            }
+                        ],
                         "metadata": {
                             "duration_ms": 100,
                             "is_key_frame": false,
@@ -121,8 +193,20 @@
                     "enabled": true,
                     "flipped": false,
                     "frame_data": {
-                        "custom_data": null,
-                        "hitboxes": [],
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 102,
+                                "id": "hitbox_0",
+                                "w": 87,
+                                "x": 13,
+                                "y": 8
+                            }
+                        ],
                         "metadata": {
                             "duration_ms": 100,
                             "is_key_frame": false,
@@ -140,8 +224,20 @@
                     "enabled": true,
                     "flipped": false,
                     "frame_data": {
-                        "custom_data": null,
-                        "hitboxes": [],
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 103,
+                                "id": "hitbox_0",
+                                "w": 88,
+                                "x": 15,
+                                "y": 6
+                            }
+                        ],
                         "metadata": {
                             "duration_ms": 100,
                             "is_key_frame": false,
@@ -159,8 +255,20 @@
                     "enabled": true,
                     "flipped": false,
                     "frame_data": {
-                        "custom_data": null,
-                        "hitboxes": [],
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 101,
+                                "id": "hitbox_0",
+                                "w": 76,
+                                "x": 23,
+                                "y": 9
+                            }
+                        ],
                         "metadata": {
                             "duration_ms": 100,
                             "is_key_frame": false,
@@ -178,8 +286,20 @@
                     "enabled": true,
                     "flipped": false,
                     "frame_data": {
-                        "custom_data": null,
-                        "hitboxes": [],
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 103,
+                                "id": "hitbox_0",
+                                "w": 79,
+                                "x": 20,
+                                "y": 8
+                            }
+                        ],
                         "metadata": {
                             "duration_ms": 100,
                             "is_key_frame": false,
@@ -197,8 +317,20 @@
                     "enabled": true,
                     "flipped": false,
                     "frame_data": {
-                        "custom_data": null,
-                        "hitboxes": [],
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 101,
+                                "id": "hitbox_0",
+                                "w": 73,
+                                "x": 26,
+                                "y": 11
+                            }
+                        ],
                         "metadata": {
                             "duration_ms": 100,
                             "is_key_frame": false,
@@ -216,8 +348,20 @@
                     "enabled": true,
                     "flipped": false,
                     "frame_data": {
-                        "custom_data": null,
-                        "hitboxes": [],
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 102,
+                                "id": "hitbox_0",
+                                "w": 76,
+                                "x": 22,
+                                "y": 11
+                            }
+                        ],
                         "metadata": {
                             "duration_ms": 100,
                             "is_key_frame": false,
@@ -674,6 +818,6 @@
             "name": "Walk"
         }
     ],
-    "timestamp": 1739037208,
+    "timestamp": 1739038643,
     "version": 1
 }

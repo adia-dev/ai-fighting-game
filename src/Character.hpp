@@ -17,16 +17,21 @@ public:
   int maxHealth;
   bool onGround;
   bool isMoving;
-
   int groundFrames;
 
+  // Preloaded animations for quick switching.
   Animation walkAnimation;
   Animation idleAnimation;
+
+  // Last horizontal input: -1 for left, +1 for right, 0 for none.
+  int inputDirection;
 
   Character(Animator *anim);
 
   SDL_Rect getCollisionRect() const;
 
+  // Instead of passing keystate, the Character now reads input via our Input
+  // helper.
   void handleInput();
 
   void update(float deltaTime);
@@ -37,5 +42,6 @@ public:
 
   void applyDamage(int damage);
 
+  // Update facing and (if needed) set reverse playback if moving backward.
   void updateFacing(const Character &target);
 };

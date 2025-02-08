@@ -10,34 +10,39 @@ public:
   // Construct an Animator using a spritesheet texture.
   Animator(SDL_Texture *texture);
 
-  // Add an animation with the given key.
+  // Add an animation with a key.
   void addAnimation(const std::string &key, const Animation &anim);
 
-  // Play (switch to) the animation identified by the key.
+  // Play (switch to) the animation identified by key.
   void play(const std::string &key);
 
-  // Update the current animation (deltaTime in seconds).
+  // Update the animation timer (deltaTime in seconds).
   void update(float deltaTime);
 
   // Render the current frame at the given screen position.
   void render(SDL_Renderer *renderer, int x, int y);
 
-  // Retrieve current hitboxes.
+  // Retrieve current hitboxes (if needed for collision detection).
   const std::vector<Hitbox> &getCurrentHitboxes() const;
 
   // Get the current frame’s rectangle.
   SDL_Rect getCurrentFrameRect() const;
 
-  // Set/get the horizontal flip.
+  // Set whether to flip horizontally (for facing).
   void setFlip(bool flip) { m_flip = flip; }
   bool getFlip() const { return m_flip; }
 
+  // Set whether the animation should play in reverse order.
+  void setReverse(bool reverse) { m_reverse = reverse; }
+  bool getReverse() const { return m_reverse; }
+
 private:
-  SDL_Texture *m_texture; // The spritesheet.
+  SDL_Texture *m_texture;
   std::map<std::string, Animation> m_animations;
   Animation m_currentAnimation;
   std::string m_currentKey;
   int m_currentFrameIndex;
   float m_timer;
   bool m_flip;
+  bool m_reverse;
 };

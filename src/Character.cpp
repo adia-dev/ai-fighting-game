@@ -6,7 +6,7 @@
 
 Character::Character(Animator *anim)
     : animator(anim), health(100), maxHealth(100), onGround(false),
-      isMoving(false), groundFrames(0) {}
+      isMoving(false), groundFrames(0), inputDirection(0) {}
 
 SDL_Rect Character::getCollisionRect() const {
   const auto &hitboxes = animator->getCurrentHitboxes();
@@ -42,13 +42,16 @@ SDL_Rect Character::getCollisionRect() const {
 void Character::handleInput() {
   const float moveForce = 500.0f;
   isMoving = false;
+  inputDirection = 0;
   if (Input::isKeyDown(SDL_SCANCODE_LEFT)) {
     mover.applyForce(Vector2f(-moveForce, 0));
     isMoving = true;
+    inputDirection = -1;
   }
   if (Input::isKeyDown(SDL_SCANCODE_RIGHT)) {
     mover.applyForce(Vector2f(moveForce, 0));
     isMoving = true;
+    inputDirection = 1;
   }
   if (Input::isKeyDown(SDL_SCANCODE_SPACE) && onGround &&
       groundFrames >= STABLE_GROUND_FRAMES) {
@@ -72,6 +75,7 @@ void Character::applyDamage(int damage) {
 }
 
 void Character::update(float deltaTime) {
+  // Apply gravity if not stably on the ground.
   if (mover.position.y < GROUND_LEVEL - GROUND_THRESHOLD)
     mover.applyForce(Vector2f(0, GRAVITY));
 
@@ -121,10 +125,28 @@ void Character::updateFacing(const Character &target) {
   SDL_Rect targetRect = target.getCollisionRect();
   int myCenterX = myRect.x + myRect.w / 2;
   int targetCenterX = targetRect.x + targetRect.w / 2;
-
+  // Always face the enemy (visual flip)
   animator->setFlip(targetCenterX < myCenterX);
+
+  // Determine if the input direction is "forward" (towards enemy)
+  // If the enemy is to the right and input is right, or enemy is to left and
+  // input is left, then forward.
+  int forwardDirection = (targetCenterX > myCenterX) ? 1 : -1;
+  if (isMoving) {
+    if (inputDirection == forwardDirection) {
+      animator->setReverse(false);
+      std::cout << "[DEBUG] Playing walk animation normally (forward).\n";
+    } else {
+      animator->setReverse(true);
+      std::cout << "[DEBUG] Playing walk animation in reverse (backward).\n";
+    }
+  } else {
+    // For idle, no reverse.
+    animator->setReverse(false);
+  }
+
   std::cout << "[DEBUG] updateFacing: My center = " << myCenterX
             << ", Target center = " << targetCenterX
             << " => flip = " << (targetCenterX < myCenterX ? "true" : "false")
-            << "\n";
+            << ", inputDirection = " << inputDirection << "\n";
 }

@@ -4,6 +4,7 @@
 #include "r.hpp"
 #include <SDL.h>
 #include <iostream>
+#include <map>
 #include <string>
 
 static const int WINDOW_WIDTH = 800;
@@ -29,7 +30,7 @@ Game::Game() {
   m_animatorPlayer = std::make_unique<Animator>(texture->get());
   m_animatorEnemy = std::make_unique<Animator>(texture->get());
 
-  // Load animations from JSON.
+  // Load all animations from the JSON file.
   std::map<std::string, Animation> anims;
   try {
     anims = PiksyAnimationLoader::loadAnimation(R::animation("alex.json"));
@@ -38,7 +39,6 @@ Game::Game() {
   }
 
   // Register animations to both animators.
-  // (For example, the JSON file might contain "Walk" and "Idle" animations.)
   if (anims.find("Walk") != anims.end()) {
     m_animatorPlayer->addAnimation("Walk", anims.at("Walk"));
     m_animatorEnemy->addAnimation("Walk", anims.at("Walk"));
@@ -47,7 +47,7 @@ Game::Game() {
     m_animatorPlayer->addAnimation("Idle", anims.at("Idle"));
     m_animatorEnemy->addAnimation("Idle", anims.at("Idle"));
   } else {
-    // Fallback: use the walk animation (but set it to one frame for idle).
+    // Fallback: use a one-frame idle version of the walk animation.
     Animation idleAnim = anims.at("Walk");
     if (!idleAnim.frames.empty()) {
       idleAnim.frames.resize(1);
@@ -57,7 +57,7 @@ Game::Game() {
     m_animatorEnemy->addAnimation("Idle", idleAnim);
   }
 
-  // Start with idle animation.
+  // Start with idle animations.
   m_animatorPlayer->play("Idle");
   m_animatorEnemy->play("Idle");
 
@@ -65,11 +65,11 @@ Game::Game() {
   m_enemy = std::make_unique<Character>(m_animatorEnemy.get());
 
   m_player->walkAnimation = anims["Walk"];
-  m_player->idleAnimation = anims.find("Idle") != anims.end()
+  m_player->idleAnimation = (anims.find("Idle") != anims.end())
                                 ? anims["Idle"]
                                 : m_player->walkAnimation;
   m_enemy->walkAnimation = anims["Walk"];
-  m_enemy->idleAnimation = anims.find("Idle") != anims.end()
+  m_enemy->idleAnimation = (anims.find("Idle") != anims.end())
                                ? anims["Idle"]
                                : m_enemy->walkAnimation;
 
