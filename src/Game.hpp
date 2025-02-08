@@ -1,5 +1,6 @@
 #pragma once
 #include "Animator.hpp"
+#include "Camera.hpp"
 #include "Character.hpp"
 #include "Renderer.hpp"
 #include "ResourceManager.hpp"
@@ -28,4 +29,6 @@ private:
   std::unique_ptr<Animator> m_animatorEnemy;
   std::unique_ptr<Character> m_player;
   std::unique_ptr<Character> m_enemy;
+
+  Camera m_camera;
 };

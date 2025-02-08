@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Animation.hpp"
 #include <SDL.h>
 #include <map>
@@ -19,20 +20,20 @@ public:
   // Update the animation timer (deltaTime in seconds).
   void update(float deltaTime);
 
-  // Render the current frame at the given screen position.
-  void render(SDL_Renderer *renderer, int x, int y);
+  // Render the current frame at the given screen position, scaled by 'scale'.
+  void render(SDL_Renderer *renderer, int x, int y, float scale);
 
-  // Retrieve current hitboxes (if needed for collision detection).
+  // Retrieve current hitboxes.
   const std::vector<Hitbox> &getCurrentHitboxes() const;
 
   // Get the current frame’s rectangle.
   SDL_Rect getCurrentFrameRect() const;
 
-  // Set whether to flip horizontally (for facing).
+  // Set whether to flip the sprite horizontally.
   void setFlip(bool flip) { m_flip = flip; }
   bool getFlip() const { return m_flip; }
 
-  // Set whether the animation should play in reverse order.
+  // Set whether the animation should play in reverse.
   void setReverse(bool reverse) { m_reverse = reverse; }
   bool getReverse() const { return m_reverse; }
 

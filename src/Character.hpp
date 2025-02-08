@@ -36,7 +36,7 @@ public:
 
   void update(float deltaTime);
 
-  void render(SDL_Renderer *renderer);
+  void render(SDL_Renderer *renderer, float cameraScale = 1.0f);
 
   void jump();
 

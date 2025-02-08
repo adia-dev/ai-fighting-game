@@ -10,7 +10,6 @@ void Animator::addAnimation(const std::string &key, const Animation &anim) {
 }
 
 void Animator::play(const std::string &key) {
-
   if (m_currentKey == key)
     return;
   auto it = m_animations.find(key);
@@ -30,8 +29,7 @@ void Animator::play(const std::string &key) {
 void Animator::update(float deltaTime) {
   if (m_currentAnimation.frames.empty())
     return;
-
-  m_timer += deltaTime * 1000.0f;
+  m_timer += deltaTime * 1000.0f; // deltaTime is in seconds, convert to ms.
   float currentDuration =
       m_currentAnimation.frames[m_currentFrameIndex].duration_ms;
   if (m_timer >= currentDuration) {
@@ -40,35 +38,40 @@ void Animator::update(float deltaTime) {
       m_currentFrameIndex++;
       if (m_currentFrameIndex >=
           static_cast<int>(m_currentAnimation.frames.size())) {
-        if (m_currentAnimation.loop)
-          m_currentFrameIndex = 0;
-        else
-          m_currentFrameIndex = m_currentAnimation.frames.size() - 1;
+        m_currentFrameIndex =
+            m_currentAnimation.loop ? 0 : m_currentAnimation.frames.size() - 1;
       }
     } else {
       m_currentFrameIndex--;
       if (m_currentFrameIndex < 0) {
-        if (m_currentAnimation.loop)
-          m_currentFrameIndex = m_currentAnimation.frames.size() - 1;
-        else
-          m_currentFrameIndex = 0;
+        m_currentFrameIndex =
+            m_currentAnimation.loop ? m_currentAnimation.frames.size() - 1 : 0;
       }
     }
   }
 }
 
-void Animator::render(SDL_Renderer *renderer, int x, int y) {
+void Animator::render(SDL_Renderer *renderer, int x, int y, float scale) {
   if (m_currentAnimation.frames.empty())
     return;
   const Frame &frame = m_currentAnimation.frames[m_currentFrameIndex];
-  SDL_Rect dest = {x, y, frame.frameRect.w, frame.frameRect.h};
+  SDL_Rect dest;
+  dest.x = x;
+  dest.y = y;
+  dest.w = static_cast<int>(frame.frameRect.w * scale);
+  dest.h = static_cast<int>(frame.frameRect.h * scale);
   SDL_RendererFlip flip = m_flip ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
   SDL_RenderCopyEx(renderer, m_texture, &frame.frameRect, &dest, 0.0, nullptr,
                    flip);
 
+  // Draw collision hitboxes (scaled) for debugging.
   for (const auto &hitbox : frame.hitboxes) {
     if (hitbox.enabled && hitbox.dataType == 1) {
-      SDL_Rect hitRect = {x + hitbox.x, y + hitbox.y, hitbox.w, hitbox.h};
+      SDL_Rect hitRect;
+      hitRect.x = x + static_cast<int>(hitbox.x * scale);
+      hitRect.y = y + static_cast<int>(hitbox.y * scale);
+      hitRect.w = static_cast<int>(hitbox.w * scale);
+      hitRect.h = static_cast<int>(hitbox.h * scale);
       SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
       SDL_RenderDrawRect(renderer, &hitRect);
     }

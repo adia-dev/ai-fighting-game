@@ -102,9 +102,9 @@ void Character::update(float deltaTime) {
   }
 }
 
-void Character::render(SDL_Renderer *renderer) {
+void Character::render(SDL_Renderer *renderer, float cameraScale) {
   animator->render(renderer, static_cast<int>(mover.position.x),
-                   static_cast<int>(mover.position.y));
+                   static_cast<int>(mover.position.y), cameraScale);
 
   SDL_Rect collRect = getCollisionRect();
   SDL_Rect healthBar = {collRect.x, collRect.y - 10, collRect.w, 5};
