@@ -58,7 +58,6 @@ void Character::handleInput(const Uint8 *keystate) {
   if (keystate[SDL_SCANCODE_RIGHT]) {
     mover.applyForce(Vector2f(moveForce, 0));
   }
-
   if (keystate[SDL_SCANCODE_SPACE] && onGround) {
     jump();
   }
