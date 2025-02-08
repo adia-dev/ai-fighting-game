@@ -1,6 +1,7 @@
+// src/Rendering/Animator.cpp
+#include "Rendering/Animator.hpp"
+#include "Core/Logger.hpp"
 #include "Data/Animation.hpp"
-#include <Rendering/Animator.hpp>
-#include <iostream>
 
 Animator::Animator(SDL_Texture *texture)
     : m_texture(texture), m_currentFrameIndex(0), m_timer(0.0f), m_flip(false),
@@ -20,17 +21,17 @@ void Animator::play(const std::string &key) {
     m_currentFrameIndex =
         m_reverse ? (m_currentAnimation.frames.size() - 1) : 0;
     m_timer = 0.0f;
-    std::cout << "[DEBUG] Playing animation: " << key
-              << (m_reverse ? " (reverse)" : "") << "\n";
+    Logger::debug("Playing animation: " + key +
+                  (m_reverse ? " (reverse)" : ""));
   } else {
-    std::cerr << "[ERROR] Animation key '" << key << "' not found.\n";
+    Logger::error("Animation key '" + key + "' not found.");
   }
 }
 
 void Animator::update(float deltaTime) {
   if (m_currentAnimation.frames.empty())
     return;
-  m_timer += deltaTime * 1000.0f; // deltaTime is in seconds, convert to ms.
+  m_timer += deltaTime * 1000.0f;
   float currentDuration =
       m_currentAnimation.frames[m_currentFrameIndex].duration_ms;
   if (m_timer >= currentDuration) {
@@ -65,7 +66,7 @@ void Animator::render(SDL_Renderer *renderer, int x, int y, float scale) {
   SDL_RenderCopyEx(renderer, m_texture, &frame.frameRect, &dest, 0.0, nullptr,
                    flip);
 
-  // Draw collision hitboxes (scaled) for debugging.
+  // Debug: Draw hitboxes.
   for (const auto &hitbox : frame.hitboxes) {
     if (hitbox.enabled) {
       SDL_Rect hitRect;
@@ -113,10 +114,7 @@ FramePhase Animator::getCurrentFramePhase() const {
 }
 
 bool Animator::isAnimationFinished() const {
-  std::cout << "[DEBUG] ANIMATION FINISHED: " << m_currentAnimation.name
-            << std::endl;
-  // If the current animation is non-looping, we assume it is finished if we are
-  // at the last frame and the timer is nearly zero.
+  Logger::debug("ANIMATION FINISHED: " + m_currentAnimation.name);
   if (!m_currentAnimation.loop && !m_currentAnimation.frames.empty() &&
       m_currentFrameIndex ==
           static_cast<int>(m_currentAnimation.frames.size()) - 1) {
@@ -124,4 +122,12 @@ bool Animator::isAnimationFinished() const {
   }
   return false;
 }
+
 std::string Animator::getCurrentAnimationKey() const { return m_currentKey; }
+Animation &Animator::getAnimation(const std::string &name) {
+  return m_animations[name];
+}
+
+bool Animator::hasAnimation(const std::string &name) {
+  return m_animations.count(name);
+}

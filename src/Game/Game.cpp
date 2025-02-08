@@ -1,12 +1,15 @@
 #include "Game.hpp"
+#include "Core/Logger.hpp"
 #include "Core/Maths.hpp"
 #include "Data/Animation.hpp"
+#include "Game/CollisionSystem.hpp"
 #include "Resources/PiksyAnimationLoader.hpp"
 #include "Resources/R.hpp"
 #include <SDL.h>
-#include <iostream>
 #include <map>
 #include <string>
+
+namespace {
 
 static bool checkCollision(const SDL_Rect &a, const SDL_Rect &b) {
   return SDL_HasIntersection(&a, &b);
@@ -51,39 +54,53 @@ static void applyCollisionImpulse(Character &a, Character &b,
   a.mover.applyForce(collisionNormal * -impulseStrength);
   b.mover.applyForce(collisionNormal * impulseStrength);
 }
+} // namespace
 
-Game::Game() {
+void Game::initWindow() {
   m_window = std::make_unique<Window>("Controllable Game", m_config.windowWidth,
                                       m_config.windowHeight, SDL_WINDOW_SHOWN);
+  Logger::info("Window created successfully.");
+}
+
+void Game::initRenderer() {
   m_renderer =
       std::make_unique<Renderer>(m_window->get(), SDL_RENDERER_ACCELERATED);
-  m_resourceManager = std::make_unique<ResourceManager>(m_renderer->get());
+  Logger::info("Renderer initialized.");
+}
 
+void Game::initResourceManager() {
+  m_resourceManager = std::make_unique<ResourceManager>(m_renderer->get());
+  Logger::info("Resource manager initialized.");
+}
+
+void Game::initAnimations() {
   auto texture = m_resourceManager->getTexture(R::texture("alex.png"));
 
   m_animatorPlayer = std::make_unique<Animator>(texture->get());
   m_animatorEnemy = std::make_unique<Animator>(texture->get());
 
-  std::map<std::string, Animation> anims;
+  std::map<std::string, Animation> loadedAnimations;
   try {
-    anims = PiksyAnimationLoader::loadAnimation(R::animation("alex.json"));
+    loadedAnimations =
+        PiksyAnimationLoader::loadAnimation(R::animation("alex.json"));
+    Logger::info("Animations loaded successfully.");
   } catch (const std::exception &e) {
-    std::cerr << "Failed to load animations: " << e.what() << "\n";
+    Logger::error("Failed to load animations: " + std::string(e.what()));
   }
 
-  if (anims.find("Walk") != anims.end()) {
-    m_animatorPlayer->addAnimation("Walk", anims.at("Walk"));
-    m_animatorEnemy->addAnimation("Walk", anims.at("Walk"));
+  if (loadedAnimations.find("Walk") != loadedAnimations.end()) {
+    m_animatorPlayer->addAnimation("Walk", loadedAnimations.at("Walk"));
+    m_animatorEnemy->addAnimation("Walk", loadedAnimations.at("Walk"));
   }
-  if (anims.find("Attack") != anims.end()) {
-    m_animatorPlayer->addAnimation("Attack", anims.at("Attack"));
-    m_animatorEnemy->addAnimation("Attack", anims.at("Attack"));
+  if (loadedAnimations.find("Attack") != loadedAnimations.end()) {
+    m_animatorPlayer->addAnimation("Attack", loadedAnimations.at("Attack"));
+    m_animatorEnemy->addAnimation("Attack", loadedAnimations.at("Attack"));
   }
-  if (anims.find("Idle") != anims.end()) {
-    m_animatorPlayer->addAnimation("Idle", anims.at("Idle"));
-    m_animatorEnemy->addAnimation("Idle", anims.at("Idle"));
-  } else {
-    Animation idleAnim = anims.at("Walk");
+  if (loadedAnimations.find("Idle") != loadedAnimations.end()) {
+    m_animatorPlayer->addAnimation("Idle", loadedAnimations.at("Idle"));
+    m_animatorEnemy->addAnimation("Idle", loadedAnimations.at("Idle"));
+  } else if (loadedAnimations.find("Walk") != loadedAnimations.end()) {
+    Animation idleAnim = loadedAnimations.at("Walk");
     if (!idleAnim.frames.empty()) {
       idleAnim.frames.resize(1);
       idleAnim.loop = false;
@@ -94,28 +111,44 @@ Game::Game() {
 
   m_animatorPlayer->play("Idle");
   m_animatorEnemy->play("Idle");
+}
 
+void Game::initCharacters() {
   m_player = std::make_unique<Character>(m_animatorPlayer.get());
   m_enemy = std::make_unique<Character>(m_animatorEnemy.get());
 
-  m_player->attackAnimation = anims["Attack"];
-  m_player->walkAnimation = anims["Walk"];
-  m_player->idleAnimation = (anims.find("Idle") != anims.end())
-                                ? anims["Idle"]
+  m_player->attackAnimation = m_animatorPlayer->getAnimation("Attack");
+  m_player->walkAnimation = m_animatorPlayer->getAnimation("Walk");
+  m_player->idleAnimation = (m_animatorPlayer->hasAnimation("Idle"))
+                                ? m_animatorPlayer->getAnimation("Idle")
                                 : m_player->walkAnimation;
-  m_enemy->walkAnimation = anims["Walk"];
-  m_enemy->idleAnimation = (anims.find("Idle") != anims.end())
-                               ? anims["Idle"]
+
+  m_enemy->walkAnimation = m_animatorEnemy->getAnimation("Walk");
+  m_enemy->idleAnimation = (m_animatorEnemy->hasAnimation("Idle"))
+                               ? m_animatorEnemy->getAnimation("Idle")
                                : m_enemy->walkAnimation;
 
   m_player->mover.position = Vector2f(100, 100);
   m_enemy->mover.position = Vector2f(400, 100);
+}
 
+void Game::initCamera() {
   m_camera.position =
       (m_player->mover.position + m_enemy->mover.position) * 0.5f;
   m_camera.targetPosition = m_camera.position;
   m_camera.scale = 1.0f;
   m_camera.targetScale = 1.0f;
+}
+
+Game::Game() {
+  Logger::init();
+
+  initWindow();
+  initRenderer();
+  initResourceManager();
+  initAnimations();
+  initCharacters();
+  initCamera();
 }
 
 void Game::run() {
@@ -155,6 +188,7 @@ void Game::update(float deltaTime) {
   m_player->updateFacing(*m_enemy);
   m_enemy->updateFacing(*m_player);
 
+  // Clamp characters inside screen bounds...
   auto clampCharacter = [this](Character &ch) {
     SDL_Rect r = ch.animator->getCurrentFrameRect();
     ch.mover.position.x =
@@ -170,24 +204,24 @@ void Game::update(float deltaTime) {
   bool hitLanded = m_fightSystem.processHit(*m_player, *m_enemy);
   if (hitLanded) {
     m_enemy->applyDamage(1);
-    std::cout << "[DEBUG] Player hit enemy!\n";
+    Logger::debug("Player hit enemy!");
   }
 
   hitLanded = m_fightSystem.processHit(*m_enemy, *m_player);
   if (hitLanded) {
     m_player->applyDamage(1);
-    std::cout << "[DEBUG] Enemy hit player!\n";
+    Logger::debug("Enemy hit player!");
   }
 
-  if (checkCollision(m_player->getCollisionRect(),
-                     m_enemy->getCollisionRect())) {
-    resolveCollision(*m_player, *m_enemy);
-    applyCollisionImpulse(*m_player, *m_enemy, m_config.defaultMoveForce);
+  if (CollisionSystem::checkCollision(m_player->getCollisionRect(),
+                                      m_enemy->getCollisionRect())) {
+    CollisionSystem::resolveCollision(*m_player, *m_enemy);
+    CollisionSystem::applyCollisionImpulse(*m_player, *m_enemy,
+                                           m_config.defaultMoveForce);
   }
 }
 
 void Game::updateCamera(float deltaTime) {
-
   Vector2f midpoint =
       (m_player->mover.position + m_enemy->mover.position) * 0.5f;
   m_camera.targetPosition = midpoint;
@@ -208,7 +242,6 @@ void Game::updateCamera(float deltaTime) {
 }
 
 void Game::render() {
-
   Vector2f offset;
   offset.x = m_config.windowWidth * 0.5f - m_camera.position.x * m_camera.scale;
   offset.y =
@@ -236,6 +269,7 @@ void Game::render() {
     float ratio = static_cast<float>(ch.health) / ch.maxHealth;
     SDL_Rect healthFill = {healthBar.x, healthBar.y,
                            static_cast<int>(healthBar.w * ratio), healthBar.h};
+
     SDL_SetRenderDrawColor(m_renderer->get(), 255, 0, 0, 255);
     SDL_RenderFillRect(m_renderer->get(), &healthBar);
     SDL_SetRenderDrawColor(m_renderer->get(), 0, 255, 0, 255);

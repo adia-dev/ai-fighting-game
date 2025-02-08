@@ -16,6 +16,13 @@ public:
   void run();
 
 private:
+  void initWindow();
+  void initRenderer();
+  void initResourceManager();
+  void initAnimations();
+  void initCharacters();
+  void initCamera();
+
   void processInput();
   void update(float deltaTime);
   void updateCamera(float deltaTime);

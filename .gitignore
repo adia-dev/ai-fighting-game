@@ -77,3 +77,4 @@ dist/
 *compile_commands.json
 
 *.null-ls*
+/logs

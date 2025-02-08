@@ -31,6 +31,10 @@ public:
 
   FramePhase getCurrentFramePhase() const;
 
+  Animation &getAnimation(const std::string &name);
+
+  bool hasAnimation(const std::string &name);
+
   // Set whether to flip the sprite horizontally.
   void setFlip(bool flip) { m_flip = flip; }
   bool getFlip() const { return m_flip; }

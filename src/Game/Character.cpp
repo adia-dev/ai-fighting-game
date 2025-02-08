@@ -1,8 +1,9 @@
+// src/Game/Character.cpp
 #include "Character.hpp"
 #include "Core/Input.hpp"
+#include "Core/Logger.hpp"
 #include <SDL.h>
 #include <algorithm>
-#include <iostream>
 
 Character::Character(Animator *anim)
     : animator(anim), health(100), maxHealth(100), onGround(false),
@@ -13,7 +14,6 @@ SDL_Rect Character::getCollisionRect() const {
   SDL_Rect collisionRect;
   bool foundCollisionBox = false;
   for (const auto &hb : hitboxes) {
-    // Only use hitboxes of type Collision
     if (!hb.enabled || hb.type != HitboxType::Collision)
       continue;
     SDL_Rect hbRect = {hb.x, hb.y, hb.w, hb.h};
@@ -33,7 +33,7 @@ SDL_Rect Character::getCollisionRect() const {
   }
   if (!foundCollisionBox) {
     collisionRect = animator->getCurrentFrameRect();
-    std::cout << "[DEBUG] No collision hitbox found; using full frame rect.\n";
+    Logger::debug("No collision hitbox found; using full frame rect.");
   }
   collisionRect.x += static_cast<int>(mover.position.x);
   collisionRect.y += static_cast<int>(mover.position.y);
@@ -41,17 +41,12 @@ SDL_Rect Character::getCollisionRect() const {
 }
 
 void Character::handleInput() {
-  // If the current frame is in Startup or Active phase (e.g. during an attack)
-  // then block movement input.
   FramePhase phase = animator->getCurrentFramePhase();
   if (phase == FramePhase::Startup || phase == FramePhase::Active) {
-    // Optionally, you can allow certain keys (or allow directional input in
-    // recovery)
     return;
   }
 
-  // Otherwise, allow movement.
-  const float moveForce = 500.0f; // Or use m_config.defaultMoveForce
+  const float moveForce = 500.0f;
   isMoving = false;
   inputDirection = 0;
 
@@ -65,11 +60,7 @@ void Character::handleInput() {
     isMoving = true;
     inputDirection = 1;
   }
-  // Attack key: use A key.
   if (Input::isKeyDown(SDL_SCANCODE_A)) {
-    // Only launch an attack if not already in an attack animation
-    // (Since we block input above during startup/active, this means the
-    // previous attack finished its blocking phase)
     attack();
   }
   if (Input::isKeyDown(SDL_SCANCODE_SPACE) && onGround &&
@@ -79,30 +70,26 @@ void Character::handleInput() {
 }
 
 void Character::attack() {
-  // Start the attack animation.
-  // The attack animation is assumed to be non-looping and its frames are tagged
-  // with the appropriate FramePhase values (Startup, Active, Recovery).
   animator->play("Attack");
-  std::cout << "[DEBUG] Attack initiated.\n";
+  Logger::debug("Attack initiated.");
 }
 
 void Character::jump() {
   groundFrames = 0;
   mover.velocity.y = -500.0f;
   onGround = false;
-  std::cout << "[DEBUG] Jump initiated.\n";
+  Logger::debug("Jump initiated.");
 }
 
 void Character::applyDamage(int damage) {
   health -= damage;
   if (health < 0)
     health = 0;
-  std::cout << "[DEBUG] Damage applied: " << damage
-            << ". Health now: " << health << "\n";
+  Logger::debug("Damage applied: " + std::to_string(damage) +
+                ". Health now: " + std::to_string(health));
 }
 
 void Character::update(float deltaTime) {
-  // Apply gravity if not on ground.
   if (mover.position.y < GROUND_LEVEL - GROUND_THRESHOLD)
     mover.applyForce(Vector2f(0, GRAVITY));
 
@@ -119,18 +106,10 @@ void Character::update(float deltaTime) {
     groundFrames = 0;
   }
 
-  // If we are in the Attack animation, use the current frame’s phase
-  // to block or allow movement.
-  // For example, if the phase is Startup or Active, do nothing.
-  // If the phase is Recovery, you may optionally allow some movement (or wait
-  // until the animation fully finishes).
   if (animator->getCurrentFramePhase() == FramePhase::Active ||
       animator->getCurrentFramePhase() == FramePhase::Startup) {
-    // Block new movement input here; you might also want to zero out horizontal
-    // velocity if you want to “lock” the character.
-    // (Optionally, you could call handleInput() only when in Recovery.)
+    // Block input during attack phases.
   } else {
-    // Not in attack blocking phase. If no input is given, default to idle.
     if (!isMoving) {
       animator->play("Idle");
     } else {
@@ -142,7 +121,6 @@ void Character::update(float deltaTime) {
 void Character::render(SDL_Renderer *renderer, float cameraScale) {
   animator->render(renderer, static_cast<int>(mover.position.x),
                    static_cast<int>(mover.position.y), cameraScale);
-  // Render health bar (unchanged)
   SDL_Rect collRect = getCollisionRect();
   SDL_Rect healthBar = {collRect.x, collRect.y - 10, collRect.w, 5};
   float ratio = static_cast<float>(health) / maxHealth;
@@ -161,24 +139,17 @@ void Character::updateFacing(const Character &target) {
   SDL_Rect targetRect = target.getCollisionRect();
   int myCenterX = myRect.x + myRect.w / 2;
   int targetCenterX = targetRect.x + targetRect.w / 2;
-  // Always face the enemy.
   animator->setFlip(targetCenterX < myCenterX);
-  // Determine if input is “forward” relative to the enemy.
   int forwardDirection = (targetCenterX > myCenterX) ? 1 : -1;
   if (isMoving) {
     if (inputDirection == forwardDirection) {
       animator->setReverse(false);
-      std::cout << "[DEBUG] Playing walk animation normally (forward).\n";
+      Logger::debug("Playing walk animation normally (forward).");
     } else {
       animator->setReverse(true);
-      std::cout << "[DEBUG] Playing walk animation in reverse (backward).\n";
+      Logger::debug("Playing walk animation in reverse (backward).");
     }
   } else {
     animator->setReverse(false);
   }
-  // std::cout << "[DEBUG] updateFacing: My center = " << myCenterX
-  //           << ", Target center = " << targetCenterX
-  //           << " => flip = " << (targetCenterX < myCenterX ? "true" :
-  //           "false")
-  //           << ", inputDirection = " << inputDirection << "\n";
 }

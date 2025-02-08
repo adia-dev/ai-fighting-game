@@ -1,6 +1,7 @@
 # Compiler settings
 COMPILER := g++
 ROOT_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
+LOG_DIR := $(ROOT_DIR)logs
 RESOURCE_DIR := $(ROOT_DIR)assets
 
 # SDL flags for both native and wasm builds
@@ -15,7 +16,7 @@ EMCC_INITIAL_MEMORY := 256MB
 EMCC_ALLOW_MEMORY_GROWTH := 1
 
 # Compilation flags
-CFLAGS := --std=c++17 -g -Wall $(SDL_CFLAGS) -I$(ROOT_DIR)src -DRESOURCE_DIR=\"$(RESOURCE_DIR)\"
+CFLAGS := --std=c++17 -g -Wall $(SDL_CFLAGS) -I$(ROOT_DIR)src -DRESOURCE_DIR=\"$(RESOURCE_DIR)\" -DLOG_DIR=\"$(LOG_DIR)\"
 
 # Emscripten-specific flags for WebAssembly builds
 EMCCFLAGS := -sUSE_SDL=2 \
