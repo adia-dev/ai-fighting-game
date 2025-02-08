@@ -19,6 +19,8 @@ public:
   // Retrieve current hitboxes (if needed for collision detection).
   const std::vector<Hitbox> &getCurrentHitboxes() const;
 
+  SDL_Rect getCurrentFrameRect() const;
+
 private:
   SDL_Texture *m_texture; // The spritesheet.
   Animation m_animation;
