@@ -67,13 +67,26 @@ void Animator::render(SDL_Renderer *renderer, int x, int y, float scale) {
 
   // Draw collision hitboxes (scaled) for debugging.
   for (const auto &hitbox : frame.hitboxes) {
-    if (hitbox.enabled && hitbox.dataType == HitboxType::Collision) {
+    if (hitbox.enabled) {
       SDL_Rect hitRect;
       hitRect.x = x + static_cast<int>(hitbox.x * scale);
       hitRect.y = y + static_cast<int>(hitbox.y * scale);
       hitRect.w = static_cast<int>(hitbox.w * scale);
       hitRect.h = static_cast<int>(hitbox.h * scale);
-      SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+      switch (hitbox.type) {
+      case HitboxType::Hit:
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+        break;
+      case HitboxType::Collision:
+        SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+        break;
+      case HitboxType::Block:
+        SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+        break;
+      case HitboxType::Grab:
+        SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+        break;
+      }
       SDL_RenderDrawRect(renderer, &hitRect);
     }
   }
@@ -92,3 +105,23 @@ SDL_Rect Animator::getCurrentFrameRect() const {
     return SDL_Rect{0, 0, 0, 0};
   return m_currentAnimation.frames[m_currentFrameIndex].frameRect;
 }
+
+FramePhase Animator::getCurrentFramePhase() const {
+  if (m_currentAnimation.frames.empty())
+    return FramePhase::None;
+  return m_currentAnimation.frames[m_currentFrameIndex].phase;
+}
+
+bool Animator::isAnimationFinished() const {
+  std::cout << "[DEBUG] ANIMATION FINISHED: " << m_currentAnimation.name
+            << std::endl;
+  // If the current animation is non-looping, we assume it is finished if we are
+  // at the last frame and the timer is nearly zero.
+  if (!m_currentAnimation.loop && !m_currentAnimation.frames.empty() &&
+      m_currentFrameIndex ==
+          static_cast<int>(m_currentAnimation.frames.size()) - 1) {
+    return m_timer < 1e-3;
+  }
+  return false;
+}
+std::string Animator::getCurrentAnimationKey() const { return m_currentKey; }

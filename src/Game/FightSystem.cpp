@@ -19,7 +19,7 @@ bool FightSystem::processHit(Character &attacker, Character &defender) {
 
   for (const auto &hb : hitboxes) {
     // Only consider hitboxes that are active (and of type Hit)
-    if (!hb.enabled || hb.dataType != HitboxType::Hit)
+    if (!hb.enabled || hb.type != HitboxType::Hit)
       continue;
 
     // In a real system you might want each hitbox to store its phase,

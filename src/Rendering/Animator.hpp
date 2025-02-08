@@ -29,6 +29,8 @@ public:
   // Get the current frame’s rectangle.
   SDL_Rect getCurrentFrameRect() const;
 
+  FramePhase getCurrentFramePhase() const;
+
   // Set whether to flip the sprite horizontally.
   void setFlip(bool flip) { m_flip = flip; }
   bool getFlip() const { return m_flip; }
@@ -36,6 +38,10 @@ public:
   // Set whether the animation should play in reverse.
   void setReverse(bool reverse) { m_reverse = reverse; }
   bool getReverse() const { return m_reverse; }
+
+  bool isAnimationFinished() const;
+
+  std::string getCurrentAnimationKey() const;
 
 private:
   SDL_Texture *m_texture;

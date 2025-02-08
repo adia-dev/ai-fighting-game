@@ -6,6 +6,7 @@ enum class HitboxType {
 };
 
 enum class FramePhase {
+  None,
   Startup, // Before the move is “active”
   Active,  // The move is active: hitboxes can hit the opponent
   Recovery // After active, move is winding down

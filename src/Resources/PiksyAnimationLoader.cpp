@@ -1,5 +1,6 @@
 #include <Resources/PiksyAnimationLoader.hpp>
 
+#include "Data/Animation.hpp"
 #include "utilities/json.hpp"
 #include <fstream>
 #include <stdexcept>
@@ -29,7 +30,7 @@ loadAnimation(const std::string &jsonFilePath) {
     Animation animation;
     std::string name = animJson.value("name", "Unnamed Animation");
     animation.name = name;
-    animation.loop = true; // For our MVP we simply loop.
+    animation.loop = animJson.value("loop", true);
 
     // Get the frames array.
     if (!animJson.contains("frames") || !animJson["frames"].is_array())
@@ -46,6 +47,7 @@ loadAnimation(const std::string &jsonFilePath) {
       frame.frameRect.w = frameJson["w"].get<int>();
       frame.frameRect.h = frameJson["h"].get<int>();
       frame.flipped = frameJson.value("flipped", false);
+      frame.phase = frameJson.value("phase", FramePhase::None);
 
       // Duration (in ms) from frame_data->metadata->duration_ms.
       if (frameJson.contains("frame_data") &&
@@ -72,14 +74,15 @@ loadAnimation(const std::string &jsonFilePath) {
           hitbox.h = hbJson["h"].get<int>();
           hitbox.enabled = true;
           // Get the hitbox data type from custom_data (if available).
+          std::string hibtox_data_type_id = hitbox.id + "_data_type";
           if (frameJson["frame_data"].contains("custom_data") &&
               frameJson["frame_data"]["custom_data"].contains(
-                  "hitbox_0_data_type")) {
-            hitbox.dataType =
-                frameJson["frame_data"]["custom_data"]["hitbox_0_data_type"]
+                  hibtox_data_type_id)) {
+            hitbox.type =
+                frameJson["frame_data"]["custom_data"][hibtox_data_type_id]
                     .get<HitboxType>();
           } else {
-            hitbox.dataType = HitboxType::Collision;
+            hitbox.type = HitboxType::Collision;
           }
           frame.hitboxes.push_back(hitbox);
         }

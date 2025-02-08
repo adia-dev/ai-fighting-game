@@ -75,6 +75,10 @@ Game::Game() {
     m_animatorPlayer->addAnimation("Walk", anims.at("Walk"));
     m_animatorEnemy->addAnimation("Walk", anims.at("Walk"));
   }
+  if (anims.find("Attack") != anims.end()) {
+    m_animatorPlayer->addAnimation("Attack", anims.at("Attack"));
+    m_animatorEnemy->addAnimation("Attack", anims.at("Attack"));
+  }
   if (anims.find("Idle") != anims.end()) {
     m_animatorPlayer->addAnimation("Idle", anims.at("Idle"));
     m_animatorEnemy->addAnimation("Idle", anims.at("Idle"));
@@ -94,6 +98,7 @@ Game::Game() {
   m_player = std::make_unique<Character>(m_animatorPlayer.get());
   m_enemy = std::make_unique<Character>(m_animatorEnemy.get());
 
+  m_player->attackAnimation = anims["Attack"];
   m_player->walkAnimation = anims["Walk"];
   m_player->idleAnimation = (anims.find("Idle") != anims.end())
                                 ? anims["Idle"]
@@ -162,12 +167,6 @@ void Game::update(float deltaTime) {
   clampCharacter(*m_player);
   clampCharacter(*m_enemy);
 
-  if (checkCollision(m_player->getCollisionRect(),
-                     m_enemy->getCollisionRect())) {
-    resolveCollision(*m_player, *m_enemy);
-    applyCollisionImpulse(*m_player, *m_enemy, m_config.defaultMoveForce);
-  }
-
   bool hitLanded = m_fightSystem.processHit(*m_player, *m_enemy);
   if (hitLanded) {
     m_enemy->applyDamage(1);
@@ -178,6 +177,12 @@ void Game::update(float deltaTime) {
   if (hitLanded) {
     m_player->applyDamage(1);
     std::cout << "[DEBUG] Enemy hit player!\n";
+  }
+
+  if (checkCollision(m_player->getCollisionRect(),
+                     m_enemy->getCollisionRect())) {
+    resolveCollision(*m_player, *m_enemy);
+    applyCollisionImpulse(*m_player, *m_enemy, m_config.defaultMoveForce);
   }
 }
 

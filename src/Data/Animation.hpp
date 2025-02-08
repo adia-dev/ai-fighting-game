@@ -8,7 +8,7 @@ struct Hitbox {
   std::string id;
   bool enabled;
   int x, y, w, h;
-  HitboxType dataType;
+  HitboxType type;
 };
 
 struct Frame {
