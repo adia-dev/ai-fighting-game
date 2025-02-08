@@ -4,7 +4,6 @@
 #include "Renderer.hpp"
 #include "ResourceManager.hpp"
 #include "SDLContext.hpp"
-#include "Vector2f.hpp"
 #include "Window.hpp"
 #include <memory>
 

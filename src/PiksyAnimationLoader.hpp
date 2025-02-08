@@ -1,8 +1,9 @@
 #pragma once
 #include "Animation.hpp"
+#include <map>
 #include <string>
 
 namespace PiksyAnimationLoader {
 // Parses a Piksy JSON animation file and returns an Animation.
-Animation loadAnimation(const std::string &jsonFilePath);
+std::map<std::string, Animation> loadAnimation(const std::string &jsonFilePath);
 } // namespace PiksyAnimationLoader

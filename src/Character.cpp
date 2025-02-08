@@ -57,7 +57,6 @@ void Character::handleInput() {
 }
 
 void Character::jump() {
-
   groundFrames = 0;
   mover.velocity.y = -500.0f;
   onGround = false;
@@ -73,7 +72,6 @@ void Character::applyDamage(int damage) {
 }
 
 void Character::update(float deltaTime) {
-
   if (mover.position.y < GROUND_LEVEL - GROUND_THRESHOLD)
     mover.applyForce(Vector2f(0, GRAVITY));
 
@@ -90,22 +88,13 @@ void Character::update(float deltaTime) {
     groundFrames = 0;
   }
 
+  // Choose animation based on movement.
   if (isMoving) {
-
-    if (animator->getCurrentFrameRect().w == 0 ||
-        animator->getCurrentFrameRect().h == 0 ||
-        animator->getCurrentFrameRect().x !=
-            walkAnimation.frames[0].frameRect.x) {
-      animator->setAnimation(walkAnimation);
-      std::cout << "[DEBUG] Switching to walk animation.\n";
-    }
+    animator->play("Walk");
+    std::cout << "[DEBUG] Switching to walk animation.\n";
   } else {
-
-    if (animator->getCurrentFrameRect().x !=
-        idleAnimation.frames[0].frameRect.x) {
-      animator->setAnimation(idleAnimation);
-      std::cout << "[DEBUG] Switching to idle animation.\n";
-    }
+    animator->play("Idle");
+    std::cout << "[DEBUG] Switching to idle animation.\n";
   }
 }
 

@@ -4,6 +4,7 @@
 #include "r.hpp"
 #include <SDL.h>
 #include <iostream>
+#include <string>
 
 static const int WINDOW_WIDTH = 800;
 static const int WINDOW_HEIGHT = 600;
@@ -28,37 +29,49 @@ Game::Game() {
   m_animatorPlayer = std::make_unique<Animator>(texture->get());
   m_animatorEnemy = std::make_unique<Animator>(texture->get());
 
-  Animation walkAnimation;
+  // Load animations from JSON.
+  std::map<std::string, Animation> anims;
   try {
-    walkAnimation =
-        PiksyAnimationLoader::loadAnimation(R::animation("Walk.json"));
+    anims = PiksyAnimationLoader::loadAnimation(R::animation("alex.json"));
   } catch (const std::exception &e) {
-    std::cerr << "Failed to load animation: " << e.what() << "\n";
-    Frame frame;
-    frame.frameRect = {0, 2203, 116, 120};
-    frame.flipped = false;
-    frame.duration_ms = 100;
-    walkAnimation.name = "Walk";
-    walkAnimation.loop = true;
-    walkAnimation.frames.push_back(frame);
+    std::cerr << "Failed to load animations: " << e.what() << "\n";
   }
-  m_animatorPlayer->setAnimation(walkAnimation);
-  m_animatorEnemy->setAnimation(walkAnimation);
 
-  Animation idleAnimation = walkAnimation;
-  if (!idleAnimation.frames.empty()) {
-
-    idleAnimation.frames.resize(1);
-    idleAnimation.loop = false;
+  // Register animations to both animators.
+  // (For example, the JSON file might contain "Walk" and "Idle" animations.)
+  if (anims.find("Walk") != anims.end()) {
+    m_animatorPlayer->addAnimation("Walk", anims.at("Walk"));
+    m_animatorEnemy->addAnimation("Walk", anims.at("Walk"));
   }
+  if (anims.find("Idle") != anims.end()) {
+    m_animatorPlayer->addAnimation("Idle", anims.at("Idle"));
+    m_animatorEnemy->addAnimation("Idle", anims.at("Idle"));
+  } else {
+    // Fallback: use the walk animation (but set it to one frame for idle).
+    Animation idleAnim = anims.at("Walk");
+    if (!idleAnim.frames.empty()) {
+      idleAnim.frames.resize(1);
+      idleAnim.loop = false;
+    }
+    m_animatorPlayer->addAnimation("Idle", idleAnim);
+    m_animatorEnemy->addAnimation("Idle", idleAnim);
+  }
+
+  // Start with idle animation.
+  m_animatorPlayer->play("Idle");
+  m_animatorEnemy->play("Idle");
 
   m_player = std::make_unique<Character>(m_animatorPlayer.get());
   m_enemy = std::make_unique<Character>(m_animatorEnemy.get());
 
-  m_player->walkAnimation = walkAnimation;
-  m_player->idleAnimation = idleAnimation;
-  m_enemy->walkAnimation = walkAnimation;
-  m_enemy->idleAnimation = idleAnimation;
+  m_player->walkAnimation = anims["Walk"];
+  m_player->idleAnimation = anims.find("Idle") != anims.end()
+                                ? anims["Idle"]
+                                : m_player->walkAnimation;
+  m_enemy->walkAnimation = anims["Walk"];
+  m_enemy->idleAnimation = anims.find("Idle") != anims.end()
+                               ? anims["Idle"]
+                               : m_enemy->walkAnimation;
 
   m_player->mover.position = Vector2f(100, 100);
   m_enemy->mover.position = Vector2f(400, 100);
@@ -87,7 +100,7 @@ void Game::run() {
 void Game::processInput() { m_player->handleInput(); }
 
 void Game::update(float deltaTime) {
-
+  // Simple enemy AI: follow the player.
   Vector2f toPlayer = m_player->mover.position - m_enemy->mover.position;
   if (toPlayer.length() > 0.0f) {
     Vector2f force = toPlayer.normalized() * 200.0f;

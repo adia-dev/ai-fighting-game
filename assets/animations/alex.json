@@ -1,0 +1,679 @@
+{
+    "animations": [
+        {
+            "frames": [
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": null,
+                        "hitboxes": [],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 113,
+                    "w": 116,
+                    "x": 1,
+                    "y": 1838
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": null,
+                        "hitboxes": [],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 115,
+                    "w": 117,
+                    "x": 152,
+                    "y": 1837
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": null,
+                        "hitboxes": [],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 115,
+                    "w": 117,
+                    "x": 304,
+                    "y": 1836
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": null,
+                        "hitboxes": [],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 114,
+                    "w": 117,
+                    "x": 462,
+                    "y": 1838
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": null,
+                        "hitboxes": [],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 112,
+                    "w": 117,
+                    "x": 614,
+                    "y": 1840
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": null,
+                        "hitboxes": [],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 111,
+                    "w": 117,
+                    "x": 761,
+                    "y": 1841
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": null,
+                        "hitboxes": [],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 110,
+                    "w": 117,
+                    "x": 907,
+                    "y": 1842
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": null,
+                        "hitboxes": [],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 109,
+                    "w": 117,
+                    "x": 1059,
+                    "y": 1843
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": null,
+                        "hitboxes": [],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 110,
+                    "w": 117,
+                    "x": 1211,
+                    "y": 1842
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": null,
+                        "hitboxes": [],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 111,
+                    "w": 117,
+                    "x": 1358,
+                    "y": 1841
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": null,
+                        "hitboxes": [],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 112,
+                    "w": 117,
+                    "x": 1506,
+                    "y": 1840
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": null,
+                        "hitboxes": [],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 113,
+                    "w": 117,
+                    "x": 1657,
+                    "y": 1839
+                }
+            ],
+            "name": "Idle"
+        },
+        {
+            "frames": [
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 109,
+                                "id": "hitbox_0",
+                                "w": 66,
+                                "x": 29,
+                                "y": 12
+                            }
+                        ],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 120,
+                    "w": 116,
+                    "x": 0,
+                    "y": 2203
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 109,
+                                "id": "hitbox_0",
+                                "w": 75,
+                                "x": 24,
+                                "y": 10
+                            }
+                        ],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 119,
+                    "w": 118,
+                    "x": 144,
+                    "y": 2204
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 112,
+                                "id": "hitbox_0",
+                                "w": 65,
+                                "x": 30,
+                                "y": 6
+                            }
+                        ],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 119,
+                    "w": 115,
+                    "x": 287,
+                    "y": 2204
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 109,
+                                "id": "hitbox_0",
+                                "w": 65,
+                                "x": 20,
+                                "y": 12
+                            }
+                        ],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 121,
+                    "w": 108,
+                    "x": 433,
+                    "y": 2202
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 115,
+                                "id": "hitbox_0",
+                                "w": 67,
+                                "x": 13,
+                                "y": 7
+                            }
+                        ],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 122,
+                    "w": 98,
+                    "x": 569,
+                    "y": 2201
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 111,
+                                "id": "hitbox_0",
+                                "w": 66,
+                                "x": 13,
+                                "y": 14
+                            }
+                        ],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 125,
+                    "w": 94,
+                    "x": 691,
+                    "y": 2198
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 122,
+                                "id": "hitbox_0",
+                                "w": 67,
+                                "x": 14,
+                                "y": 2
+                            }
+                        ],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 123,
+                    "w": 105,
+                    "x": 810,
+                    "y": 2200
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 110,
+                                "id": "hitbox_0",
+                                "w": 79,
+                                "x": 21,
+                                "y": 12
+                            }
+                        ],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 121,
+                    "w": 115,
+                    "x": 949,
+                    "y": 2202
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 112,
+                                "id": "hitbox_0",
+                                "w": 87,
+                                "x": 19,
+                                "y": 7
+                            }
+                        ],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 118,
+                    "w": 119,
+                    "x": 1094,
+                    "y": 2205
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 104,
+                                "id": "hitbox_0",
+                                "w": 80,
+                                "x": 12,
+                                "y": 15
+                            }
+                        ],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 119,
+                    "w": 108,
+                    "x": 1250,
+                    "y": 2204
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": {
+                            "hitbox_0_data_type": 1,
+                            "hitbox_1_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 110,
+                                "id": "hitbox_0",
+                                "w": 66,
+                                "x": 16,
+                                "y": 12
+                            }
+                        ],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 122,
+                    "w": 98,
+                    "x": 1404,
+                    "y": 2201
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 117,
+                                "id": "hitbox_0",
+                                "w": 67,
+                                "x": 11,
+                                "y": 10
+                            }
+                        ],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 126,
+                    "w": 95,
+                    "x": 1535,
+                    "y": 2197
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 121,
+                                "id": "hitbox_0",
+                                "w": 73,
+                                "x": 12,
+                                "y": 6
+                            }
+                        ],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 126,
+                    "w": 103,
+                    "x": 1667,
+                    "y": 2197
+                },
+                {
+                    "data": {},
+                    "enabled": true,
+                    "flipped": false,
+                    "frame_data": {
+                        "custom_data": {
+                            "hitbox_0_data_type": 1
+                        },
+                        "hitboxes": [
+                            {
+                                "data_key": "hitbox_0_data",
+                                "enabled": true,
+                                "h": 120,
+                                "id": "hitbox_0",
+                                "w": 76,
+                                "x": 15,
+                                "y": 5
+                            }
+                        ],
+                        "metadata": {
+                            "duration_ms": 100,
+                            "is_key_frame": false,
+                            "name": ""
+                        },
+                        "points": []
+                    },
+                    "h": 124,
+                    "w": 115,
+                    "x": 1804,
+                    "y": 2199
+                }
+            ],
+            "name": "Walk"
+        }
+    ],
+    "timestamp": 1739037208,
+    "version": 1
+}
