@@ -5,7 +5,7 @@
 #include "Rendering/Animator.hpp"
 #include <SDL.h>
 
-// Use constants from Config (or use default values here)
+// TODO: Use constants from Config
 static const float GRAVITY = 980.0f;
 static const int GROUND_LEVEL = 500;
 static const int GROUND_THRESHOLD = 5;
@@ -20,11 +20,6 @@ public:
   bool onGround;
   bool isMoving;
   int groundFrames;
-
-  // Preloaded animations for quick switching.
-  Animation walkAnimation;
-  Animation idleAnimation;
-  Animation attackAnimation; // new attack animation
 
   // Last horizontal input: -1 for left, +1 for right, 0 for none.
   int inputDirection;

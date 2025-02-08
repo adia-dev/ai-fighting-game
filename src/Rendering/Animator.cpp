@@ -118,7 +118,7 @@ bool Animator::isAnimationFinished() const {
   if (!m_currentAnimation.loop && !m_currentAnimation.frames.empty() &&
       m_currentFrameIndex ==
           static_cast<int>(m_currentAnimation.frames.size()) - 1) {
-    return m_timer < 1e-3;
+    return true;
   }
   return false;
 }

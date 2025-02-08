@@ -11,3 +11,18 @@ enum class FramePhase {
   Active,  // The move is active: hitboxes can hit the opponent
   Recovery // After active, move is winding down
 };
+
+namespace {
+static inline const char *frame_phase_to_string(FramePhase phase) {
+  switch (phase) {
+  case FramePhase::None:
+    return "None";
+  case FramePhase::Startup:
+    return "Startup";
+  case FramePhase::Active:
+    return "Active";
+  case FramePhase::Recovery:
+    return "Recovery";
+  }
+}
+} // namespace

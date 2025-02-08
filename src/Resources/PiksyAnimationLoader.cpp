@@ -1,5 +1,6 @@
 #include <Resources/PiksyAnimationLoader.hpp>
 
+#include "Core/Logger.hpp"
 #include "Data/Animation.hpp"
 #include "utilities/json.hpp"
 #include <fstream>

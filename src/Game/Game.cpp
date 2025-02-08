@@ -9,53 +9,6 @@
 #include <map>
 #include <string>
 
-namespace {
-
-static bool checkCollision(const SDL_Rect &a, const SDL_Rect &b) {
-  return SDL_HasIntersection(&a, &b);
-}
-
-static void resolveCollision(Character &a, Character &b) {
-  SDL_Rect rectA = a.getCollisionRect();
-  SDL_Rect rectB = b.getCollisionRect();
-  if (!checkCollision(rectA, rectB))
-    return;
-  SDL_Rect intersection;
-  SDL_IntersectRect(&rectA, &rectB, &intersection);
-  if (intersection.w < intersection.h) {
-    int separation = intersection.w / 2;
-    if (rectA.x < rectB.x) {
-      a.mover.position.x -= separation;
-      b.mover.position.x += separation;
-    } else {
-      a.mover.position.x += separation;
-      b.mover.position.x -= separation;
-    }
-  } else {
-    int separation = intersection.h / 2;
-    if (rectA.y < rectB.y) {
-      a.mover.position.y -= separation;
-      b.mover.position.y += separation;
-    } else {
-      a.mover.position.y += separation;
-      b.mover.position.y -= separation;
-    }
-  }
-}
-
-static void applyCollisionImpulse(Character &a, Character &b,
-                                  float impulseStrength) {
-  SDL_Rect rectA = a.getCollisionRect();
-  SDL_Rect rectB = b.getCollisionRect();
-  Vector2f centerA(rectA.x + rectA.w / 2.0f, rectA.y + rectA.h / 2.0f);
-  Vector2f centerB(rectB.x + rectB.w / 2.0f, rectB.y + rectB.h / 2.0f);
-  Vector2f collisionNormal = (centerB - centerA).normalized();
-
-  a.mover.applyForce(collisionNormal * -impulseStrength);
-  b.mover.applyForce(collisionNormal * impulseStrength);
-}
-} // namespace
-
 void Game::initWindow() {
   m_window = std::make_unique<Window>("Controllable Game", m_config.windowWidth,
                                       m_config.windowHeight, SDL_WINDOW_SHOWN);
@@ -92,10 +45,22 @@ void Game::initAnimations() {
     m_animatorPlayer->addAnimation("Walk", loadedAnimations.at("Walk"));
     m_animatorEnemy->addAnimation("Walk", loadedAnimations.at("Walk"));
   }
+
   if (loadedAnimations.find("Attack") != loadedAnimations.end()) {
     m_animatorPlayer->addAnimation("Attack", loadedAnimations.at("Attack"));
     m_animatorEnemy->addAnimation("Attack", loadedAnimations.at("Attack"));
   }
+
+  if (loadedAnimations.find("Attack 2") != loadedAnimations.end()) {
+    m_animatorPlayer->addAnimation("Attack 2", loadedAnimations.at("Attack 2"));
+    m_animatorEnemy->addAnimation("Attack 2", loadedAnimations.at("Attack 2"));
+  }
+
+  if (loadedAnimations.find("Attack 3") != loadedAnimations.end()) {
+    m_animatorPlayer->addAnimation("Attack 3", loadedAnimations.at("Attack 3"));
+    m_animatorEnemy->addAnimation("Attack 3", loadedAnimations.at("Attack 3"));
+  }
+
   if (loadedAnimations.find("Idle") != loadedAnimations.end()) {
     m_animatorPlayer->addAnimation("Idle", loadedAnimations.at("Idle"));
     m_animatorEnemy->addAnimation("Idle", loadedAnimations.at("Idle"));
@@ -116,17 +81,6 @@ void Game::initAnimations() {
 void Game::initCharacters() {
   m_player = std::make_unique<Character>(m_animatorPlayer.get());
   m_enemy = std::make_unique<Character>(m_animatorEnemy.get());
-
-  m_player->attackAnimation = m_animatorPlayer->getAnimation("Attack");
-  m_player->walkAnimation = m_animatorPlayer->getAnimation("Walk");
-  m_player->idleAnimation = (m_animatorPlayer->hasAnimation("Idle"))
-                                ? m_animatorPlayer->getAnimation("Idle")
-                                : m_player->walkAnimation;
-
-  m_enemy->walkAnimation = m_animatorEnemy->getAnimation("Walk");
-  m_enemy->idleAnimation = (m_animatorEnemy->hasAnimation("Idle"))
-                               ? m_animatorEnemy->getAnimation("Idle")
-                               : m_enemy->walkAnimation;
 
   m_player->mover.position = Vector2f(100, 100);
   m_enemy->mover.position = Vector2f(400, 100);
@@ -179,7 +133,7 @@ void Game::update(float deltaTime) {
   Vector2f toPlayer = m_player->mover.position - m_enemy->mover.position;
   if (toPlayer.length() > 0.0f) {
     Vector2f force = toPlayer.normalized() * m_config.enemyFollowForce;
-    m_enemy->mover.applyForce(force);
+    // m_enemy->mover.applyForce(force);
   }
 
   m_player->update(deltaTime);

@@ -1,7 +1,7 @@
-// src/Game/Character.cpp
 #include "Character.hpp"
 #include "Core/Input.hpp"
 #include "Core/Logger.hpp"
+#include "Data/Animation.hpp"
 #include <SDL.h>
 #include <algorithm>
 
@@ -70,7 +70,19 @@ void Character::handleInput() {
 }
 
 void Character::attack() {
-  animator->play("Attack");
+  FramePhase phase = animator->getCurrentFramePhase();
+  if (phase == FramePhase::Recovery) {
+    auto currentAnimationKey = animator->getCurrentAnimationKey();
+    if (currentAnimationKey == "Attack") {
+      animator->play("Attack 2");
+      Logger::debug("Combo x2, Launching second attack !!");
+    } else if (currentAnimationKey == "Attack 2") {
+      Logger::debug("Combo x2, Launching second attack !!!");
+      animator->play("Attack 3");
+    }
+  } else {
+    animator->play("Attack");
+  }
   Logger::debug("Attack initiated.");
 }
 
@@ -111,7 +123,9 @@ void Character::update(float deltaTime) {
     // Block input during attack phases.
   } else {
     if (!isMoving) {
-      animator->play("Idle");
+      if (animator->isAnimationFinished()) {
+        animator->play("Idle");
+      }
     } else {
       animator->play("Walk");
     }
