@@ -1,5 +1,5 @@
 #pragma once
-#include "Animation.hpp"
+#include <Data/Animation.hpp>
 #include <map>
 #include <string>
 

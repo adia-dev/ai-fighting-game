@@ -1,5 +1,6 @@
 #pragma once
-#include "Vector2f.hpp"
+
+#include <Data/Vector2f.hpp>
 
 struct Camera {
   Vector2f position;

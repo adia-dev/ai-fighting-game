@@ -1,4 +1,4 @@
-#include "Animator.hpp"
+#include <Rendering/Animator.hpp>
 #include <iostream>
 
 Animator::Animator(SDL_Texture *texture)

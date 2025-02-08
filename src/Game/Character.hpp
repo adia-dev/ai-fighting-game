@@ -1,7 +1,8 @@
 #pragma once
-#include "Animation.hpp"
-#include "Animator.hpp"
-#include "Mover.hpp"
+#include "Data/Animation.hpp"
+#include "Game/Mover.hpp"
+#include "Rendering/Animator.hpp"
+
 #include <SDL.h>
 
 static const float GRAVITY = 980.0f;

@@ -1,5 +1,5 @@
 #pragma once
-#include "Texture2D.hpp"
+#include "Rendering/Texture2D.hpp"
 #include <memory>
 #include <string>
 #include <unordered_map>

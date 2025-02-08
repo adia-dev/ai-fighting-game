@@ -1,11 +1,12 @@
 #pragma once
-#include "Animator.hpp"
-#include "Camera.hpp"
-#include "Character.hpp"
-#include "Renderer.hpp"
-#include "ResourceManager.hpp"
-#include "SDLContext.hpp"
-#include "Window.hpp"
+#include "Core/Config.hpp"
+#include "Core/SDLContext.hpp"
+#include "Game/Character.hpp"
+#include "Rendering/Renderer.hpp"
+#include "Rendering/Window.hpp"
+#include "Resources/ResourceManager.hpp"
+#include <Rendering/Animator.hpp>
+#include <Rendering/Camera.hpp>
 #include <memory>
 
 class Game {
@@ -16,7 +17,11 @@ public:
 private:
   void processInput();
   void update(float deltaTime);
+  void updateCamera(float deltaTime);
   void render();
+
+  // Core configuration.
+  Config m_config;
 
   // RAII wrappers:
   SDLContext m_sdlContext;

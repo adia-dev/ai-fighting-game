@@ -1,4 +1,3 @@
-// Vector2f.hpp
 #pragma once
 #include <cmath>
 

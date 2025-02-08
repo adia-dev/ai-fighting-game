@@ -1,4 +1,3 @@
-// Texture2D.hpp
 #pragma once
 #include <SDL.h>
 #include <SDL_image.h>

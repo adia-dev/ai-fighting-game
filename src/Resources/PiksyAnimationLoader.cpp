@@ -1,4 +1,4 @@
-#include "PiksyAnimationLoader.hpp"
+#include <Resources/PiksyAnimationLoader.hpp>
 
 #include "utilities/json.hpp"
 #include <fstream>

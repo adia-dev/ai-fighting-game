@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Animation.hpp"
+#include <Data/Animation.hpp>
 #include <SDL.h>
 #include <map>
 #include <string>

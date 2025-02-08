@@ -1,5 +1,5 @@
 #include "Character.hpp"
-#include "Input.hpp"
+#include "Core/Input.hpp"
 #include <SDL.h>
 #include <algorithm>
 #include <iostream>
