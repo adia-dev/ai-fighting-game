@@ -1,14 +1,11 @@
-
 #pragma once
+
 #include "Animator.hpp"
 #include "Mover.hpp"
-#include "Vector2f.hpp"
 #include <SDL.h>
-#include <string>
 
-// Constants:
-static const float GRAVITY = 980.0f; // pixels per second squared
-static const int GROUND_LEVEL = 500; // y
+static const float GRAVITY = 980.0f;
+static const int GROUND_LEVEL = 500;
 
 class Character {
 public:

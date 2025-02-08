@@ -1,3 +1,7 @@
+#include "Character.hpp"
+#include <SDL.h>
+#include <algorithm>
+#include <iostream>
 
 #include "Character.hpp"
 #include <SDL.h>
@@ -6,10 +10,46 @@ Character::Character(Animator *anim)
     : animator(anim), health(100), maxHealth(100), onGround(false) {}
 
 SDL_Rect Character::getCollisionRect() const {
-  SDL_Rect frameRect = animator->getCurrentFrameRect();
-  frameRect.x += static_cast<int>(mover.position.x);
-  frameRect.y += static_cast<int>(mover.position.y);
-  return frameRect;
+
+  const auto &hitboxes = animator->getCurrentHitboxes();
+  SDL_Rect collisionRect;
+  bool foundCollisionBox = false;
+
+  for (const auto &hb : hitboxes) {
+    if (!hb.enabled || hb.dataType != 1)
+      continue;
+
+    SDL_Rect hbRect = {hb.x, hb.y, hb.w, hb.h};
+    if (!foundCollisionBox) {
+      collisionRect = hbRect;
+      foundCollisionBox = true;
+    } else {
+
+      int x1 = std::min(collisionRect.x, hbRect.x);
+      int y1 = std::min(collisionRect.y, hbRect.y);
+      int x2 = std::max(collisionRect.x + collisionRect.w, hbRect.x + hbRect.w);
+      int y2 = std::max(collisionRect.y + collisionRect.h, hbRect.y + hbRect.h);
+      collisionRect.x = x1;
+      collisionRect.y = y1;
+      collisionRect.w = x2 - x1;
+      collisionRect.h = y2 - y1;
+    }
+  }
+
+  if (!foundCollisionBox) {
+
+    collisionRect = animator->getCurrentFrameRect();
+    std::cout << "[DEBUG] No collision hitbox found; using full frame rect.\n";
+  } else {
+    std::cout << "[DEBUG] Using collision hitbox: (" << collisionRect.x << ", "
+              << collisionRect.y << ", " << collisionRect.w << ", "
+              << collisionRect.h << ")\n";
+  }
+
+  collisionRect.x += static_cast<int>(mover.position.x);
+  collisionRect.y += static_cast<int>(mover.position.y);
+
+  return collisionRect;
 }
 
 void Character::update(float deltaTime) {
