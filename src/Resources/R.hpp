@@ -3,6 +3,12 @@
 #include <string>
 
 namespace R {
+inline static std::string config(const std::string &resource_name) {
+  std::string config_path(RESOURCE_DIR);
+  config_path += "/config/" + resource_name;
+  return config_path;
+}
+
 inline static std::string texture(const std::string &resource_name) {
   std::string texture_path(RESOURCE_DIR);
   texture_path += "/textures/" + resource_name;

@@ -18,6 +18,24 @@ public:
   Action lastAction() { return m_lastAction; }
   float totalReward() { return m_totalReward; }
 
+  float getEpsilon() const { return m_epsilon; }
+  float getLearningRate() const { return m_learningRate; }
+  float getDiscountFactor() const { return m_discountFactor; }
+  void setParameters(float epsilon, float learningRate, float discountFactor) {
+    m_epsilon = epsilon;
+    m_learningRate = learningRate;
+    m_discountFactor = discountFactor;
+  }
+
+  // State access
+  const State &getCurrentState() const { return m_currentState; }
+
+  // Statistics
+  int getEpisodeCount() const { return m_episodeCount; }
+  float getWinRate() const {
+    return m_wins / (float)std::max(1, m_episodeCount);
+  }
+
 private:
   std::vector<float> stateToVector(const State &state);
   State getCurrentState(const Character &opponent);
@@ -53,11 +71,14 @@ private:
   float m_discountFactor;
   int m_episodeCount;
   int updateCounter;
+  int m_wins = 0;
+  std::vector<float> m_rewardHistory;
 
   // Experience replay (if desired)
   std::deque<Experience> replayBuffer;
   static const size_t MAX_REPLAY_BUFFER = 40000;
   static const size_t BATCH_SIZE = 32;
+  static constexpr size_t MAX_REWARD_HISTORY = 1000;
 
   std::random_device m_rd;
   std::mt19937 m_gen;

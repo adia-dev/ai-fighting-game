@@ -1,0 +1,114 @@
+###############################################################################
+# Makefile.emscripten - Build your SDL2+ImGui project as a WebAssembly app
+#
+# Usage:
+#   make -f Makefile.emscripten      # Build the project (output: web/index.html)
+#   make -f Makefile.emscripten serve  # Build and serve via a local HTTP server
+#   make -f Makefile.emscripten clean  # Clean build artifacts
+#
+# Before running, make sure you have sourced the emscripten environment:
+#   source /path/to/emsdk/emsdk_env.sh
+###############################################################################
+
+# Use Emscripten compilers
+CXX = em++
+CC  = emcc
+
+# Directories (adjust these paths as needed)
+SRC_DIR    = src
+IMGUI_DIR  = vendor/imgui
+WEB_DIR    = web
+
+# Output target (Emscripten produces HTML, JS and WASM files)
+TARGET = $(WEB_DIR)/index.html
+
+# Optimization and memory options for emcc
+EMCC_OPTIMIZATION_LEVEL := 3
+EMCC_TOTAL_MEMORY := 256MB
+EMCC_INITIAL_MEMORY := 256MB
+EMCC_ALLOW_MEMORY_GROWTH := 1
+
+# Gather source files:
+#  - All your C++ sources from SRC_DIR
+#  - ImGui core files and backends (we use the SDL2 and OpenGL3 backends here)
+SOURCES := $(shell find $(SRC_DIR) -name '*.cpp')
+IMGUI_SOURCES = \
+    $(IMGUI_DIR)/imgui.cpp \
+    $(IMGUI_DIR)/imgui_draw.cpp \
+    $(IMGUI_DIR)/imgui_tables.cpp \
+    $(IMGUI_DIR)/imgui_widgets.cpp \
+    $(IMGUI_DIR)/imgui_demo.cpp \
+    $(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp \
+    $(IMGUI_DIR)/backends/imgui_impl_sdlrenderer2.cpp
+SOURCES += $(IMGUI_SOURCES)
+
+# Convert source file list to corresponding object files
+OBJS = $(SOURCES:.cpp=.o)
+
+# Common compile flags
+CPPFLAGS = -I$(SRC_DIR) -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends
+CPPFLAGS += -std=c++17 -Wall -Wextra -O2
+
+# Emscripten-specific flags:
+EMSFLAGS  = -sUSE_SDL=2           \
+            -sUSE_SDL_TTF=2         \
+            -sUSE_SDL_IMAGE=2       \
+            -sALLOW_MEMORY_GROWTH=1 \
+            -sWASM=1                \
+            -sNO_EXIT_RUNTIME=0     \
+            -sASSERTIONS=1          \
+             --emrun \
+            -sSDL2_IMAGE_FORMATS='["png", "jpg"]' \
+            -DRESOURCE_DIR=\"/assets\" \
+            -lembind \
+            -sINITIAL_MEMORY=$(EMCC_INITIAL_MEMORY) \
+            -sTOTAL_MEMORY=$(EMCC_TOTAL_MEMORY) \
+            -sALLOW_MEMORY_GROWTH=$(EMCC_ALLOW_MEMORY_GROWTH)
+
+
+# Uncomment the following line to output a single file (may increase load time)
+# EMSFLAGS += -s SINGLE_FILE=1
+
+# Final compile and link flags
+CXXFLAGS = $(CPPFLAGS) $(EMSFLAGS)
+LDFLAGS  = $(EMSFLAGS)
+# Optionally, if your app needs to access runtime files, preload the assets:
+LDFLAGS += --preload-file assets@/assets
+
+# (Optional) Specify a custom shell HTML file for further customization.
+# Make sure this file exists or adjust the path accordingly.
+# SHELL_FILE = shell_minimal.html
+
+###############################################################################
+# Build Targets
+###############################################################################
+
+# Default target: build the WebAssembly version
+all: $(TARGET)
+	@echo "Build complete: $(TARGET)"
+
+# Ensure the output directory exists
+$(WEB_DIR):
+	mkdir -p $(WEB_DIR)
+
+# Rule: compile .cpp files into .o object files
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Rule: link object files into the final WebAssembly package
+$(TARGET): $(OBJS) | $(WEB_DIR)
+	$(CXX) $(OBJS) -o $(TARGET) $(LDFLAGS)
+
+# Clean up object files and the web output directory
+clean:
+	rm -f $(OBJS)
+	rm -rf $(WEB_DIR)
+	@echo "Clean complete."
+
+# Serve the output using a simple HTTP server (requires Python 3)
+serve: $(TARGET)
+	@echo "Serving $(WEB_DIR) on http://localhost:8000 ..."
+	python3 -m http.server 8000 --directory $(WEB_DIR)
+
+.PHONY: all clean serve
+
