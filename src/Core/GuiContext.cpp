@@ -45,14 +45,14 @@ void GuiContext::init(SDL_Window *window, SDL_Renderer *renderer,
 
 #ifdef __EMSCRIPTEN__
   // Force 1.0 scale for Emscripten
-  io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+  // io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
   // Disable unsupported features
-  config.flags &= ~ImGuiConfigFlags_ViewportsEnable;
+  // config.flags &= ~ImGuiConfigFlags_ViewportsEnable;
   // config.flags &= ~ImGuiConfigFlags_DockingEnable;
 #else
-  io.ConfigFlags |= config.flags;
 #endif
+  io.ConfigFlags |= config.flags;
 
   // Initialize backends
   ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);

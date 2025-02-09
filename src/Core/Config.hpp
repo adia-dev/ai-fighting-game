@@ -2,8 +2,8 @@
 
 struct Config {
 
-  int windowWidth = 800;
-  int windowHeight = 600;
+  int windowWidth = 1440;
+  int windowHeight = 900;
 
   int groundLevel = 500;
   int groundThreshold = 5;
