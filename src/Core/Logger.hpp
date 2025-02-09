@@ -23,8 +23,8 @@ class Logger {
   };
 
   struct LoggerConfig {
-    LogLevel level = LogLevel::Info;
-    std::string log_file = std::string(LOG_DIR) + "/app.log";
+    LogLevel level = LogLevel::Debug;
+    // std::string log_file = std::string(LOG_DIR) + "/app.log";
     bool enable_colors = true;
   };
 

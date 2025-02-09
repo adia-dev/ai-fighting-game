@@ -18,7 +18,7 @@ public:
   void run();
 
 private:
-  void single_iter(void);
+  void single_iter(void *arg);
 
   void initWindow();
   void initRenderer();
@@ -50,6 +50,8 @@ private:
   std::unique_ptr<RLAgent> m_player_agent;
 
   bool m_headlessMode = false;
+  float m_deltaTime = 0.0f;
+  Uint64 m_lastCounter = 0.0f;
 
   FightSystem m_fightSystem;
   CombatSystem m_combatSystem;

@@ -83,13 +83,17 @@ Game::Game() {
 }
 
 void Game::run() {
-
 #ifdef __EMSCRIPTEN__
-  emscripten_set_main_loop(Application::single_iter, 0, 1);
+  emscripten_set_main_loop_arg(
+      [](void *arg) {
+        Game *game = static_cast<Game *>(arg);
+        game->single_iter(arg);
+      },
+      this, 0, 1);
 #endif
 
   bool quit = false;
-  Uint32 lastTime = SDL_GetTicks();
+  m_lastCounter = SDL_GetPerformanceCounter();
 
   while (!quit) {
     SDL_Event event;
@@ -106,55 +110,34 @@ void Game::run() {
       }
     }
 
-    Uint32 currentTime = SDL_GetTicks();
-    float deltaTime = (currentTime - lastTime) / 1000.f;
-    lastTime = currentTime;
+    Uint64 currentCounter = SDL_GetPerformanceCounter();
+    m_deltaTime = static_cast<float>(currentCounter - m_lastCounter) /
+                  SDL_GetPerformanceFrequency();
+    m_lastCounter = currentCounter;
 
     processInput();
     for (size_t i = 0; i < (m_headlessMode ? 100 : 1); ++i) {
-      update(deltaTime);
+      update(m_deltaTime);
     }
-    updateCamera(deltaTime);
+    updateCamera(m_deltaTime);
     render();
     SDL_Delay(16);
   }
 }
 
-void Game::single_iter(void) {
-  bool quit = false;
-  Uint32 lastTime = SDL_GetTicks();
+void Game::single_iter(void *arg) {
+  Game *game = static_cast<Game *>(arg);
 
-  SDL_Event event;
-  while (SDL_PollEvent(&event)) {
-    if (event.type == SDL_QUIT)
-      quit = true;
+  // Use the persistent m_lastTime or m_lastCounter
+  Uint64 currentCounter = SDL_GetPerformanceCounter();
+  game->m_deltaTime = static_cast<float>(currentCounter - game->m_lastCounter) /
+                      SDL_GetPerformanceFrequency();
+  game->m_lastCounter = currentCounter;
 
-    if (event.type == SDL_KEYDOWN) {
-      if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
-        m_headlessMode = false;
-      } else if (event.key.keysym.scancode == SDL_SCANCODE_TAB) {
-        m_headlessMode = true;
-      }
-    }
-  }
-
-  Uint32 currentTime = SDL_GetTicks();
-  float deltaTime = (currentTime - lastTime) / 1000.f;
-  lastTime = currentTime;
-
-  processInput();
-  for (size_t i = 0; i < (m_headlessMode ? 100 : 1); ++i) {
-    update(deltaTime);
-  }
-  updateCamera(deltaTime);
-  render();
-  SDL_Delay(16);
-
-  if (quit) {
-#ifdef __EMSCRIPTEN__
-    emscripten_cancel_main_loop();
-#endif
-  }
+  game->processInput();
+  game->update(m_deltaTime);
+  game->updateCamera(m_deltaTime);
+  game->render();
 }
 
 void Game::processInput() { m_player->handleInput(); }
@@ -273,6 +256,9 @@ void Game::render() {
   drawText(m_renderer->get(), "Agent State:", 10, 350, white);
   drawText(m_renderer->get(), "Health: " + std::to_string(m_player->health), 10,
            370, white);
+  drawText(m_renderer->get(), "Delta time: " + std::to_string(m_deltaTime), 500,
+           200, white);
+
   drawText(m_renderer->get(),
            "Last Action: " + std::string(actionTypeToString(
                                  m_player_agent->lastAction().type)),
