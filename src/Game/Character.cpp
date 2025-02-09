@@ -13,14 +13,31 @@ SDL_Rect Character::getHitboxRect(HitboxType type) const {
   const auto &hitboxes = animator->getCurrentHitboxes();
   SDL_Rect collisionRect;
   bool foundCollisionBox = false;
+
+  // Get the current frame rect to use its width as reference
+  SDL_Rect frameRect = animator->getCurrentFrameRect();
+
   for (const auto &hb : hitboxes) {
     if (!hb.enabled || hb.type != type)
       continue;
-    SDL_Rect hbRect = {hb.x, hb.y, hb.w, hb.h};
+
+    SDL_Rect hbRect;
+    if (animator->getFlip()) {
+      // When flipped, mirror the hitbox's x coordinate relative to the frame
+      // width
+      hbRect.x = frameRect.w - (hb.x + hb.w);
+    } else {
+      hbRect.x = hb.x;
+    }
+    hbRect.y = hb.y;
+    hbRect.w = hb.w;
+    hbRect.h = hb.h;
+
     if (!foundCollisionBox) {
       collisionRect = hbRect;
       foundCollisionBox = true;
     } else {
+      // Combine multiple hitboxes into one bounding box
       int x1 = std::min(collisionRect.x, hbRect.x);
       int y1 = std::min(collisionRect.y, hbRect.y);
       int x2 = std::max(collisionRect.x + collisionRect.w, hbRect.x + hbRect.w);
@@ -31,10 +48,14 @@ SDL_Rect Character::getHitboxRect(HitboxType type) const {
       collisionRect.h = y2 - y1;
     }
   }
+
   if (!foundCollisionBox) {
-    collisionRect = {0, 0, 0, 0};
-    Logger::debug("No collision hitbox found; using full empty rect.");
+    // If no hitbox found, use a default small box in the center
+    collisionRect = {frameRect.w / 4, frameRect.h / 4, frameRect.w / 2,
+                     frameRect.h / 2};
   }
+
+  // Position the hitbox relative to the world
   collisionRect.x += static_cast<int>(mover.position.x);
   collisionRect.y += static_cast<int>(mover.position.y);
   return collisionRect;
@@ -71,19 +92,26 @@ void Character::handleInput() {
 
 void Character::attack() {
   FramePhase phase = animator->getCurrentFramePhase();
+  auto currentAnimationKey = animator->getCurrentAnimationKey();
+
+  // Combo system
   if (phase == FramePhase::Recovery) {
-    auto currentAnimationKey = animator->getCurrentAnimationKey();
     if (currentAnimationKey == "Attack") {
       animator->play("Attack 2");
-      Logger::debug("Combo x2, Launching second attack !!");
+      Logger::debug("Combo x2, Launching second attack!");
+      return;
     } else if (currentAnimationKey == "Attack 2") {
-      Logger::debug("Combo x2, Launching second attack !!!");
       animator->play("Attack 3");
+      Logger::debug("Combo x3, Launching third attack!");
+      return;
     }
-  } else {
-    animator->play("Attack");
   }
-  Logger::debug("Attack initiated.");
+
+  // Normal attack if not in a combo
+  if (phase != FramePhase::Active && phase != FramePhase::Startup) {
+    animator->play("Attack");
+    Logger::debug("Attack initiated.");
+  }
 }
 
 void Character::jump() {
@@ -102,33 +130,66 @@ void Character::applyDamage(int damage, bool survive) {
 }
 
 void Character::update(float deltaTime) {
-  if (mover.position.y < GROUND_LEVEL - GROUND_THRESHOLD)
-    mover.applyForce(Vector2f(0, GRAVITY));
+  // First compute collision rectangle and apply physics
+  SDL_Rect collRect = getHitboxRect();
+  if (collRect.h == 0) {
+    collRect = animator->getCurrentFrameRect();
+  }
 
+  // Apply gravity if not on ground
+  if (!onGround) {
+    mover.applyForce(Vector2f(0, GRAVITY));
+  }
+
+  // Update physics and animation
   mover.update(deltaTime);
   animator->update(deltaTime);
 
-  if (mover.position.y >= (GROUND_LEVEL - GROUND_THRESHOLD)) {
-    mover.position.y = GROUND_LEVEL;
+  // Ground detection and correction
+  collRect = getHitboxRect();
+  if (collRect.h == 0) {
+    collRect = animator->getCurrentFrameRect();
+  }
+  int charBottom = static_cast<int>(mover.position.y) + collRect.h;
+
+  // Ground collision check and correction
+  if (charBottom >= GROUND_LEVEL) {
+    // Snap to ground
+    mover.position.y = GROUND_LEVEL - collRect.h;
     mover.velocity.y = 0;
     onGround = true;
     groundFrames++;
-  } else {
+  } else if (charBottom < GROUND_LEVEL - GROUND_THRESHOLD) {
     onGround = false;
     groundFrames = 0;
   }
 
-  if (animator->getCurrentFramePhase() == FramePhase::Active ||
-      animator->getCurrentFramePhase() == FramePhase::Startup) {
-    // Block input during attack phases.
-  } else {
-    if (!isMoving) {
-      if (animator->isAnimationFinished()) {
-        animator->play("Idle");
-      }
-    } else {
-      animator->play("Walk");
+  FramePhase currentPhase = animator->getCurrentFramePhase();
+
+  // Animation state update
+  if (currentPhase == FramePhase::Active ||
+      currentPhase == FramePhase::Startup) {
+    // Don't interrupt attack animations
+    return;
+  }
+
+  // Don't transition to idle/walk during recovery unless overridden by a new
+  // attack
+  if (currentPhase == FramePhase::Recovery &&
+      !animator->isAnimationFinished()) {
+    return;
+  }
+
+  // Only handle idle/walk transitions when we're not in any attack phase
+  bool shouldBeIdle = !isMoving || (std::abs(mover.velocity.x) < 1.0f &&
+                                    std::abs(mover.velocity.y) < 1.0f);
+
+  if (shouldBeIdle) {
+    if (animator->getCurrentAnimationKey() != "Idle") {
+      animator->play("Idle");
     }
+  } else if (isMoving && animator->getCurrentAnimationKey() != "Walk") {
+    animator->play("Walk");
   }
 }
 

@@ -62,24 +62,35 @@ void Animator::update(float deltaTime) {
 void Animator::render(SDL_Renderer *renderer, int x, int y, float scale) {
   if (m_currentAnimation.frames.empty())
     return;
+
   const Frame &frame = m_currentAnimation.frames[m_currentFrameIndex];
   SDL_Rect dest;
   dest.x = x;
   dest.y = y;
   dest.w = static_cast<int>(frame.frameRect.w * scale);
   dest.h = static_cast<int>(frame.frameRect.h * scale);
+
   SDL_RendererFlip flip = m_flip ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
   SDL_RenderCopyEx(renderer, m_texture, &frame.frameRect, &dest, 0.0, nullptr,
                    flip);
 
-  // Debug: Draw hitboxes.
+  // Debug: Draw hitboxes
   for (const auto &hitbox : frame.hitboxes) {
     if (hitbox.enabled) {
       SDL_Rect hitRect;
-      hitRect.x = x + static_cast<int>(hitbox.x * scale);
+      if (m_flip) {
+        // Mirror the hitbox relative to the frame width when flipped
+        hitRect.x =
+            x + static_cast<int>((frame.frameRect.w - (hitbox.x + hitbox.w)) *
+                                 scale);
+      } else {
+        hitRect.x = x + static_cast<int>(hitbox.x * scale);
+      }
       hitRect.y = y + static_cast<int>(hitbox.y * scale);
       hitRect.w = static_cast<int>(hitbox.w * scale);
       hitRect.h = static_cast<int>(hitbox.h * scale);
+
+      // Set color based on hitbox type
       switch (hitbox.type) {
       case HitboxType::Hit:
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);

@@ -10,14 +10,26 @@ bool FightSystem::processHit(Character &attacker, Character &defender) {
   bool hitRegistered = false;
   SDL_Rect defenderHurtbox = defender.getHitboxRect();
   SDL_Rect defenderBlockBox = defender.getHitboxRect(HitboxType::Block);
+  SDL_Rect attackerFrameRect = attacker.animator->getCurrentFrameRect();
+  bool isAttackerFlipped = attacker.animator->getFlip();
 
   for (const auto &hb : hitboxes) {
     if (!hb.enabled || hb.type != HitboxType::Hit)
       continue;
-    SDL_Rect hbRect = {static_cast<int>(attacker.mover.position.x + hb.x),
-                       static_cast<int>(attacker.mover.position.y + hb.y), hb.w,
-                       hb.h};
 
+    // Calculate hitbox position taking flipping into account
+    SDL_Rect hbRect;
+    if (isAttackerFlipped) {
+      hbRect.x = static_cast<int>(attacker.mover.position.x +
+                                  (attackerFrameRect.w - (hb.x + hb.w)));
+    } else {
+      hbRect.x = static_cast<int>(attacker.mover.position.x + hb.x);
+    }
+    hbRect.y = static_cast<int>(attacker.mover.position.y + hb.y);
+    hbRect.w = hb.w;
+    hbRect.h = hb.h;
+
+    // Check for block first
     if (CollisionSystem::checkCollision(hbRect, defenderBlockBox)) {
       defender.applyDamage(2, true);
       Logger::debug("Block registered! Small Damage applied.");
@@ -26,6 +38,7 @@ bool FightSystem::processHit(Character &attacker, Character &defender) {
       break;
     }
 
+    // Then check for hit
     if (CollisionSystem::checkCollision(hbRect, defenderHurtbox)) {
       defender.applyDamage(10);
       Logger::debug("Hit registered! Damage applied.");
