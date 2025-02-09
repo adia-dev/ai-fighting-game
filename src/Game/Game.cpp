@@ -7,6 +7,7 @@
 #include "Resources/R.hpp"
 #include <SDL.h>
 #include <map>
+#include <memory>
 #include <string>
 
 void Game::initWindow() {
@@ -50,6 +51,7 @@ void Game::initAnimations() {
 void Game::initCharacters() {
   m_player = std::make_unique<Character>(m_animatorPlayer.get());
   m_enemy = std::make_unique<Character>(m_animatorEnemy.get());
+  m_agent = std::make_unique<RLAgent>(m_enemy.get());
 
   m_player->mover.position = Vector2f(100, 100);
   m_enemy->mover.position = Vector2f(400, 100);
@@ -65,7 +67,6 @@ void Game::initCamera() {
 
 Game::Game() {
   Logger::init();
-
   initWindow();
   initRenderer();
   initResourceManager();
@@ -77,18 +78,30 @@ Game::Game() {
 void Game::run() {
   bool quit = false;
   Uint32 lastTime = SDL_GetTicks();
+
   while (!quit) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT)
         quit = true;
+
+      if (event.type == SDL_KEYDOWN) {
+        if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
+          m_headlessMode = false;
+        } else if (event.key.keysym.scancode == SDL_SCANCODE_TAB) {
+          m_headlessMode = true;
+        }
+      }
     }
+
     Uint32 currentTime = SDL_GetTicks();
     float deltaTime = (currentTime - lastTime) / 1000.f;
     lastTime = currentTime;
 
     processInput();
-    update(deltaTime);
+    for (size_t i = 0; i < (m_headlessMode ? 10000 : 1); ++i) {
+      update(deltaTime);
+    }
     updateCamera(deltaTime);
     render();
     SDL_Delay(16);
@@ -98,49 +111,49 @@ void Game::run() {
 void Game::processInput() { m_player->handleInput(); }
 
 void Game::update(float deltaTime) {
+  m_combatSystem.update(deltaTime, *m_player, *m_enemy);
 
-  Vector2f toPlayer = m_player->mover.position - m_enemy->mover.position;
-  if (toPlayer.length() > 0.0f) {
-    Vector2f force = toPlayer.normalized() * m_config.enemyFollowForce;
-    // m_enemy->mover.applyForce(force);
-  }
+  if (m_combatSystem.isRoundActive()) {
+    m_agent->update(deltaTime, *m_player);
+    m_player->update(deltaTime);
+    m_enemy->update(deltaTime);
 
-  m_player->update(deltaTime);
-  m_enemy->update(deltaTime);
+    m_player->updateFacing(*m_enemy);
+    m_enemy->updateFacing(*m_player);
 
-  m_player->updateFacing(*m_enemy);
-  m_enemy->updateFacing(*m_player);
+    // Clamp characters inside screen bounds...
+    auto clampCharacter = [this](Character &ch) {
+      SDL_Rect r = ch.animator->getCurrentFrameRect();
+      ch.mover.position.x =
+          clamp(ch.mover.position.x, 0.f, float(m_config.windowWidth - r.w));
+      ch.mover.position.y =
+          clamp(ch.mover.position.y, 0.f, float(m_config.windowHeight - r.h));
+      if (ch.mover.position.y > m_config.groundLevel)
+        ch.mover.position.y = m_config.groundLevel;
+    };
+    clampCharacter(*m_player);
+    clampCharacter(*m_enemy);
 
-  // Clamp characters inside screen bounds...
-  auto clampCharacter = [this](Character &ch) {
-    SDL_Rect r = ch.animator->getCurrentFrameRect();
-    ch.mover.position.x =
-        clamp(ch.mover.position.x, 0.f, float(m_config.windowWidth - r.w));
-    ch.mover.position.y =
-        clamp(ch.mover.position.y, 0.f, float(m_config.windowHeight - r.h));
-    if (ch.mover.position.y > m_config.groundLevel)
-      ch.mover.position.y = m_config.groundLevel;
-  };
-  clampCharacter(*m_player);
-  clampCharacter(*m_enemy);
+    bool hitLanded = m_fightSystem.processHit(*m_player, *m_enemy);
+    if (hitLanded) {
+      m_enemy->applyDamage(1);
+      Logger::debug("Player hit enemy!");
+    }
 
-  bool hitLanded = m_fightSystem.processHit(*m_player, *m_enemy);
-  if (hitLanded) {
-    m_enemy->applyDamage(1);
-    Logger::debug("Player hit enemy!");
-  }
+    hitLanded = m_fightSystem.processHit(*m_enemy, *m_player);
+    if (hitLanded) {
+      m_player->applyDamage(1);
+      Logger::debug("Enemy hit player!");
+    }
 
-  hitLanded = m_fightSystem.processHit(*m_enemy, *m_player);
-  if (hitLanded) {
-    m_player->applyDamage(1);
-    Logger::debug("Enemy hit player!");
-  }
-
-  if (CollisionSystem::checkCollision(m_player->getHitboxRect(),
-                                      m_enemy->getHitboxRect())) {
-    CollisionSystem::resolveCollision(*m_player, *m_enemy);
-    CollisionSystem::applyCollisionImpulse(*m_player, *m_enemy,
-                                           m_config.defaultMoveForce);
+    if (CollisionSystem::checkCollision(m_player->getHitboxRect(),
+                                        m_enemy->getHitboxRect())) {
+      CollisionSystem::resolveCollision(*m_player, *m_enemy);
+      CollisionSystem::applyCollisionImpulse(*m_player, *m_enemy,
+                                             m_config.defaultMoveForce);
+    }
+  } else {
+    m_combatSystem.startNewRound(*m_player, *m_enemy);
   }
 }
 
@@ -203,6 +216,8 @@ void Game::render() {
 
   renderCharacterWithCamera(*m_player);
   renderCharacterWithCamera(*m_enemy);
+  m_agent->render(m_renderer->get());
+  m_combatSystem.render(m_renderer->get());
 
   SDL_RenderPresent(m_renderer->get());
 }

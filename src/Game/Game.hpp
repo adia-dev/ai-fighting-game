@@ -1,7 +1,9 @@
 #pragma once
+#include "AI/RLAgent.hpp"
 #include "Core/Config.hpp"
 #include "Core/SDLContext.hpp"
 #include "Game/Character.hpp"
+#include "Game/CombatSystem.hpp"
 #include "Game/FightSystem.hpp"
 #include "Rendering/Renderer.hpp"
 #include "Rendering/Window.hpp"
@@ -42,7 +44,10 @@ private:
   std::unique_ptr<Animator> m_animatorEnemy;
   std::unique_ptr<Character> m_player;
   std::unique_ptr<Character> m_enemy;
+  std::unique_ptr<RLAgent> m_agent;
+  bool m_headlessMode = false;
 
   FightSystem m_fightSystem;
+  CombatSystem m_combatSystem;
   Camera m_camera;
 };
