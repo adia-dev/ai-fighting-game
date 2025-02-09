@@ -20,6 +20,8 @@ public:
   bool onGround;
   bool isMoving;
   int groundFrames;
+  bool lastAttackLanded;
+  bool lastBlockEffective;
 
   // Last horizontal input: -1 for left, +1 for right, 0 for none.
   int inputDirection;
@@ -39,9 +41,13 @@ public:
 
   void jump();
 
+  void move(const Vector2f &force);
+
   void applyDamage(int damage, bool survive = false);
 
   void updateFacing(const Character &target);
 
   void attack();
+
+  void block();
 };

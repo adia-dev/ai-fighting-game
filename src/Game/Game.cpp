@@ -3,12 +3,17 @@
 #include "Core/Maths.hpp"
 #include "Data/Animation.hpp"
 #include "Game/CollisionSystem.hpp"
+#include "Rendering/Text.hpp"
 #include "Resources/PiksyAnimationLoader.hpp"
 #include "Resources/R.hpp"
 #include <SDL.h>
 #include <map>
 #include <memory>
 #include <string>
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 void Game::initWindow() {
   m_window = std::make_unique<Window>("Controllable Game", m_config.windowWidth,
@@ -51,7 +56,9 @@ void Game::initAnimations() {
 void Game::initCharacters() {
   m_player = std::make_unique<Character>(m_animatorPlayer.get());
   m_enemy = std::make_unique<Character>(m_animatorEnemy.get());
-  m_agent = std::make_unique<RLAgent>(m_enemy.get());
+
+  m_enemy_agent = std::make_unique<RLAgent>(m_enemy.get());
+  m_player_agent = std::make_unique<RLAgent>(m_player.get());
 
   m_player->mover.position = Vector2f(100, 100);
   m_enemy->mover.position = Vector2f(400, 100);
@@ -76,6 +83,11 @@ Game::Game() {
 }
 
 void Game::run() {
+
+#ifdef __EMSCRIPTEN__
+  emscripten_set_main_loop(Application::single_iter, 0, 1);
+#endif
+
   bool quit = false;
   Uint32 lastTime = SDL_GetTicks();
 
@@ -99,12 +111,49 @@ void Game::run() {
     lastTime = currentTime;
 
     processInput();
-    for (size_t i = 0; i < (m_headlessMode ? 10000 : 1); ++i) {
+    for (size_t i = 0; i < (m_headlessMode ? 100 : 1); ++i) {
       update(deltaTime);
     }
     updateCamera(deltaTime);
     render();
     SDL_Delay(16);
+  }
+}
+
+void Game::single_iter(void) {
+  bool quit = false;
+  Uint32 lastTime = SDL_GetTicks();
+
+  SDL_Event event;
+  while (SDL_PollEvent(&event)) {
+    if (event.type == SDL_QUIT)
+      quit = true;
+
+    if (event.type == SDL_KEYDOWN) {
+      if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
+        m_headlessMode = false;
+      } else if (event.key.keysym.scancode == SDL_SCANCODE_TAB) {
+        m_headlessMode = true;
+      }
+    }
+  }
+
+  Uint32 currentTime = SDL_GetTicks();
+  float deltaTime = (currentTime - lastTime) / 1000.f;
+  lastTime = currentTime;
+
+  processInput();
+  for (size_t i = 0; i < (m_headlessMode ? 100 : 1); ++i) {
+    update(deltaTime);
+  }
+  updateCamera(deltaTime);
+  render();
+  SDL_Delay(16);
+
+  if (quit) {
+#ifdef __EMSCRIPTEN__
+    emscripten_cancel_main_loop();
+#endif
   }
 }
 
@@ -114,7 +163,9 @@ void Game::update(float deltaTime) {
   m_combatSystem.update(deltaTime, *m_player, *m_enemy);
 
   if (m_combatSystem.isRoundActive()) {
-    m_agent->update(deltaTime, *m_player);
+    m_enemy_agent->update(deltaTime, *m_player);
+    m_player_agent->update(deltaTime, *m_enemy);
+
     m_player->update(deltaTime);
     m_enemy->update(deltaTime);
 
@@ -216,8 +267,19 @@ void Game::render() {
 
   renderCharacterWithCamera(*m_player);
   renderCharacterWithCamera(*m_enemy);
-  m_agent->render(m_renderer->get());
   m_combatSystem.render(m_renderer->get());
+
+  SDL_Color white = {255, 255, 255, 255};
+  drawText(m_renderer->get(), "Agent State:", 10, 350, white);
+  drawText(m_renderer->get(), "Health: " + std::to_string(m_player->health), 10,
+           370, white);
+  drawText(m_renderer->get(),
+           "Last Action: " + std::string(actionTypeToString(
+                                 m_player_agent->lastAction().type)),
+           10, 390, white);
+  drawText(m_renderer->get(),
+           "Reward: " + std::to_string(m_player_agent->totalReward()), 10, 410,
+           white);
 
   SDL_RenderPresent(m_renderer->get());
 }

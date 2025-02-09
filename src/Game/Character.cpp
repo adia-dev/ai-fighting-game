@@ -2,6 +2,7 @@
 #include "Core/Input.hpp"
 #include "Core/Logger.hpp"
 #include "Data/Animation.hpp"
+#include "Data/Vector2f.hpp"
 #include <SDL.h>
 #include <algorithm>
 
@@ -84,6 +85,9 @@ void Character::handleInput() {
   if (Input::isKeyDown(SDL_SCANCODE_A)) {
     attack();
   }
+  if (Input::isKeyDown(SDL_SCANCODE_B)) {
+    block();
+  }
   if (Input::isKeyDown(SDL_SCANCODE_SPACE) && onGround &&
       groundFrames >= STABLE_GROUND_FRAMES) {
     jump();
@@ -114,6 +118,13 @@ void Character::attack() {
   }
 }
 
+void Character::block() {
+  FramePhase phase = animator->getCurrentFramePhase();
+  if (phase == FramePhase::Active)
+    return;
+  animator->play("Block");
+}
+
 void Character::jump() {
   groundFrames = 0;
   mover.velocity.y = -500.0f;
@@ -121,8 +132,11 @@ void Character::jump() {
   Logger::debug("Jump initiated.");
 }
 
+void Character::move(const Vector2f &force) { mover.applyForce(force); }
+
 void Character::applyDamage(int damage, bool survive) {
-  health -= damage;
+  bool isBlocking = animator->getCurrentAnimationKey() == "Block";
+  health -= damage * (isBlocking ? 0.1f : 1.f);
   if (health < 0)
     health = survive ? 1 : 0;
   Logger::debug("Damage applied: " + std::to_string(damage) +

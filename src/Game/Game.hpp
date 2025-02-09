@@ -18,6 +18,8 @@ public:
   void run();
 
 private:
+  void single_iter(void);
+
   void initWindow();
   void initRenderer();
   void initResourceManager();
@@ -44,7 +46,9 @@ private:
   std::unique_ptr<Animator> m_animatorEnemy;
   std::unique_ptr<Character> m_player;
   std::unique_ptr<Character> m_enemy;
-  std::unique_ptr<RLAgent> m_agent;
+  std::unique_ptr<RLAgent> m_enemy_agent;
+  std::unique_ptr<RLAgent> m_player_agent;
+
   bool m_headlessMode = false;
 
   FightSystem m_fightSystem;

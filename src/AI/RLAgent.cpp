@@ -1,110 +1,44 @@
 #include "RLAgent.hpp"
-#include "AI/RLVisualization.hpp"
 #include "Core/Logger.hpp"
+#include <algorithm>
 
+// Default values.
 static constexpr float DEFAULT_EPISODE_DURATION = 60.0f;
+static constexpr int TARGET_UPDATE_FREQUENCY = 1000; // steps
 
 RLAgent::RLAgent(Character *character)
     : m_character(character), m_totalReward(0), m_episodeTime(0),
       m_episodeDuration(DEFAULT_EPISODE_DURATION), m_timeSinceLastAction(0),
-      m_timeSinceLastDamage(0), m_lastHealth(100), m_epsilon(0.3f),
-      m_learningRate(0.1f), m_discountFactor(0.95f), m_episodeCount(0),
+      m_lastHealth(100), m_currentActionDuration(0), m_actionHoldDuration(0.2f),
+      m_consecutiveWhiffs(0), m_epsilon(0.3f), m_learningRate(0.001f),
+      m_discountFactor(0.95f), m_episodeCount(0), updateCounter(0),
       m_gen(m_rd()), m_dist(0.0f, 1.0f) {
-  initQTable();
+  // Our state vector now has 6 base features + 4 radar features = 10.
+  state_dim = 10;
+  num_actions = 9; // 8 original actions + Block action.
+  onlineDQN = std::make_unique<NeuralNetwork>(state_dim, 64, num_actions);
+  targetDQN = std::make_unique<NeuralNetwork>(state_dim, 64, num_actions);
   reset();
 }
 
-void RLAgent::update(float deltaTime, const Character &opponent) {
-  m_episodeTime += deltaTime;
-  // Update timers
-  m_timeSinceLastAction += deltaTime;
-  m_timeSinceLastDamage += deltaTime;
-  m_currentActionDuration += deltaTime;
-
-  // Get current state
-  State newState = getCurrentState(opponent);
-
-  // Only make new decisions if we've completed our current action duration
-  if (m_currentActionDuration >= m_actionHoldDuration) {
-    // Select action using epsilon-greedy policy
-    Action action = selectAction(newState);
-
-    // Track damage dealt/received
-    float healthDiff = m_character->health - m_lastHealth;
-    if (healthDiff != 0) {
-      if (healthDiff < 0) {
-        m_consecutiveWhiffs++;
-        Logger::debug("Took damage: " + std::to_string(-healthDiff));
-      } else {
-        m_consecutiveWhiffs = 0;
-      }
-      m_timeSinceLastDamage = 0;
-    }
-    m_lastHealth = m_character->health;
-
-    // Calculate reward
-    float reward = calculateReward(newState, action);
-    m_totalReward += reward;
-
-    // Store experience and learn
-    Experience exp{m_currentState, m_lastAction, reward, newState, false};
-    learn(exp);
-
-    // Update state and action
-    m_currentState = newState;
-    m_lastAction = action;
-
-    // Reset action duration for new action
-    m_currentActionDuration = 0;
-    m_actionHoldDuration = calculateActionDuration(action);
-
-    logDecision(newState, action, reward);
-  }
-
-  // Apply current action
-  applyAction(m_lastAction);
-
-  // Update visualization
-  updateRadar();
-  updateStateDisplay();
+std::vector<float> RLAgent::stateToVector(const State &state) {
+  std::vector<float> v;
+  v.push_back(state.distanceToOpponent);
+  v.push_back(state.relativePositionX);
+  v.push_back(state.relativePositionY);
+  v.push_back(state.myHealth);
+  v.push_back(state.opponentHealth);
+  v.push_back(state.timeSinceLastAction);
+  // Append radar features (assumed to be 4 values).
+  for (int i = 0; i < 4; i++)
+    v.push_back(state.radar[i]);
+  return v;
 }
 
-float RLAgent::calculateActionDuration(const Action &action) {
-  // Hold movement actions longer for smoother motion
-  if (action.moveLeft || action.moveRight) {
-    return 0.2f + m_dist(m_gen) * 0.1f; // 0.2-0.3 seconds
-  }
-
-  // Jump actions need time to complete
-  if (action.jump) {
-    return 0.4f;
-  }
-
-  // Attack actions should complete their animation
-  if (action.attack) {
-    return 0.3f;
-  }
-
-  return 0.1f; // Default duration
-}
-
-void RLAgent::updateStats() {
-  m_stats.totalEpisodes = m_episodeCount;
-  if (!m_stats.rewardHistory.empty()) {
-    float totalReward = 0;
-    for (float reward : m_stats.rewardHistory) {
-      totalReward += reward;
-    }
-    m_stats.avgReward = totalReward / m_stats.rewardHistory.size();
-    m_stats.bestReward = *std::max_element(m_stats.rewardHistory.begin(),
-                                           m_stats.rewardHistory.end());
-  }
-}
-
+// In src/AI/RLAgent.cpp:
 State RLAgent::getCurrentState(const Character &opponent) {
-  Vector2f toOpponent = opponent.mover.position - m_character->mover.position;
-
   State state;
+  Vector2f toOpponent = opponent.mover.position - m_character->mover.position;
   state.distanceToOpponent = toOpponent.length();
   state.relativePositionX = toOpponent.x;
   state.relativePositionY = toOpponent.y;
@@ -112,474 +46,185 @@ State RLAgent::getCurrentState(const Character &opponent) {
       static_cast<float>(m_character->health) / m_character->maxHealth;
   state.opponentHealth =
       static_cast<float>(opponent.health) / opponent.maxHealth;
-  // TODO: Implement stamina system
-  // state.myStamina = 1.0f;
-  state.amIOnGround = m_character->onGround;
-  state.isOpponentOnGround = opponent.onGround;
-  state.myCurrentAnimation = m_character->animator->getCurrentAnimationKey();
-  state.opponentCurrentAnimation = opponent.animator->getCurrentAnimationKey();
   state.timeSinceLastAction = m_timeSinceLastAction;
+
+  // Compute four simple radar features (for instance, by quadrants).
+  state.radar[0] =
+      (toOpponent.x >= 0 && toOpponent.y >= 0) ? toOpponent.length() : 0;
+  state.radar[1] =
+      (toOpponent.x < 0 && toOpponent.y >= 0) ? toOpponent.length() : 0;
+  state.radar[2] =
+      (toOpponent.x < 0 && toOpponent.y < 0) ? toOpponent.length() : 0;
+  state.radar[3] =
+      (toOpponent.x >= 0 && toOpponent.y < 0) ? toOpponent.length() : 0;
+
+  // Initialize m_lastOpponentHealth on the first call.
+  if (m_lastOpponentHealth == 0)
+    m_lastOpponentHealth = state.opponentHealth;
 
   return state;
 }
 
 Action RLAgent::selectAction(const State &state) {
-  StateKey key = state.toKey();
-  std::string stateStr = key.toString();
-
-  // Increase exploration when performing poorly
-  if (state.myHealth < state.opponentHealth) {
-    m_epsilon = std::min(m_epsilon * 1.1f, 0.4f);
-  }
-
-  // Epsilon-greedy selection with context
+  auto state_vec = stateToVector(state);
+  auto q_values = onlineDQN->forward(state_vec);
   if (m_dist(m_gen) < m_epsilon) {
-    // Biased random selection based on state
-    std::vector<ActionType> preferredActions;
-
-    if (state.opponentCurrentAnimation.find("Attack") != std::string::npos) {
-      // Prefer defensive actions when opponent is attacking
-      preferredActions = {ActionType::MoveLeft, ActionType::MoveRight,
-                          ActionType::Jump};
-    } else if (state.distanceToOpponent < 150.0f) {
-      // Prefer attacks at close range
-      preferredActions = {ActionType::Attack, ActionType::MoveLeftAttack,
-                          ActionType::MoveRightAttack};
-    } else if (state.distanceToOpponent > 300.0f) {
-      // Prefer movement when far
-      preferredActions = {ActionType::MoveLeft, ActionType::MoveRight};
-    }
-
-    if (!preferredActions.empty() && m_dist(m_gen) < 0.7f) {
-      return Action::fromType(preferredActions[static_cast<int>(
-          m_dist(m_gen) * preferredActions.size())]);
-    }
-
-    // Fall back to completely random action
-    return Action::fromType(
-        static_cast<ActionType>(static_cast<int>(m_dist(m_gen) * 8)));
+    int random_action = static_cast<int>(m_dist(m_gen) * num_actions);
+    return Action::fromType(static_cast<ActionType>(random_action));
   }
-
-  // Select best action from Q-table
-  ActionType bestAction = ActionType::None;
-  float bestValue = -std::numeric_limits<float>::max();
-
-  for (const auto &pair : m_qTable[stateStr]) {
-    if (pair.second > bestValue) {
-      bestValue = pair.second;
-      bestAction = pair.first;
-    }
-  }
-
-  return Action::fromType(bestAction);
+  int bestAction = std::distance(
+      q_values.begin(), std::max_element(q_values.begin(), q_values.end()));
+  return Action::fromType(static_cast<ActionType>(bestAction));
 }
 
 float RLAgent::calculateReward(const State &state, const Action &action) {
   float reward = 0.0f;
 
-  // Base combat rewards
+  // (1) Health margin: reward if you have higher health than your opponent.
+  float healthMargin = state.myHealth - state.opponentHealth;
+  reward += healthMargin * 10.0f;
+
+  // (2) If an attack was performed, reward if it landed, or penalize otherwise.
   if (action.attack) {
-    if (state.distanceToOpponent < 150.0f) {
-      // Reward for attacking at proper range
-      reward += 5.0f;
-
-      // Extra reward for attacking vulnerable opponent
-      if (state.isOpponentVulnerable) {
-        reward += 15.0f;
-      }
-
-      // Combo rewards
-      if (state.myComboCounter > 0) {
-        reward += state.myComboCounter * 3.0f;
-      }
+    // If our character’s last attack landed (flag set by FightSystem)
+    if (m_character->lastAttackLanded) {
+      // Bonus reward proportional to damage (here, assume 10 damage per hit)
+      reward += 20.0f;
     } else {
-      // Punish whiffing attacks
+      // Penalty for wasted attack
+      reward -= 5.0f;
+    }
+  }
+
+  // (3) If block was used, reward it if effective (i.e. blocking an incoming
+  // attack)
+  if (action.block) {
+    if (m_character->lastBlockEffective) {
+      reward += 10.0f;
+    } else {
       reward -= 3.0f;
-      m_consecutiveWhiffs++;
     }
   }
 
-  // Positioning rewards
-  float optimalDistance = 120.0f;
-  if (state.opponentCurrentAnimation.find("Attack") != std::string::npos) {
-    // Stay further when opponent is attacking
-    optimalDistance = 180.0f;
-  }
-  float distanceError = std::abs(state.distanceToOpponent - optimalDistance);
-  reward -= distanceError * 0.01f;
+  // (4) Distance shaping: reward staying close to the optimal range.
+  float optimalDistance = 150.0f;
+  reward -= std::abs(state.distanceToOpponent - optimalDistance) * 0.05f;
 
-  // Defensive rewards
-  if (state.opponentCurrentAnimation.find("Attack") != std::string::npos) {
-    if (action.moveLeft || action.moveRight) {
-      reward += 4.0f; // Reward evasive movement
-    }
-    if (action.jump && state.distanceToOpponent < 150.0f) {
-      reward += 3.0f; // Reward defensive jumps
-    }
-  }
+  // (5) Time penalty: penalize for inactivity to encourage fast, decisive
+  // actions.
+  reward -= state.timeSinceLastAction * 0.1f;
 
-  // Wall positioning
-  if (state.distanceToWall < 50.0f) {
-    reward -= 2.0f; // Punish being cornered
-  }
-
-  // Health-based rewards
-  float healthDiff = state.myHealth - state.opponentHealth;
-  reward += healthDiff * 15.0f;
-
-  // Time management
-  if (healthDiff > 0 && m_episodeTime > 45.0f) {
-    reward += 1.0f; // Reward maintaining health lead late in round
-  }
-
-  // Punish excessive whiffing
-  if (m_consecutiveWhiffs > 2) {
-    reward -= m_consecutiveWhiffs * 8.0f;
-  }
+  // (6) (Optional) Penalize consecutive missed actions (e.g. excessive whiffs).
+  if (action.attack && !m_character->lastAttackLanded)
+    reward -= m_consecutiveWhiffs * 2.0f;
 
   return reward;
 }
 
+void RLAgent::updateReplayBuffer(const Experience &exp) {
+  if (replayBuffer.size() >= MAX_REPLAY_BUFFER)
+    replayBuffer.pop_front();
+  replayBuffer.push_back(exp);
+}
+
+void RLAgent::sampleAndTrain() {
+  if (replayBuffer.size() < BATCH_SIZE)
+    return;
+  std::vector<Experience> batch;
+  std::uniform_int_distribution<size_t> indexDist(0, replayBuffer.size() - 1);
+  for (size_t i = 0; i < BATCH_SIZE; ++i)
+    batch.push_back(replayBuffer[indexDist(m_gen)]);
+
+  for (auto &exp : batch) {
+    auto s = stateToVector(exp.state);
+    auto s_next = stateToVector(exp.nextState);
+    auto current_q = onlineDQN->forward(s);
+    auto next_q = targetDQN->forward(s_next);
+    float max_next_q = *std::max_element(next_q.begin(), next_q.end());
+    int action_index = static_cast<int>(exp.action.type);
+    current_q[action_index] = exp.reward + m_discountFactor * max_next_q;
+    onlineDQN->train(s, current_q, m_learningRate);
+  }
+  updateCounter += BATCH_SIZE;
+  if (updateCounter >= TARGET_UPDATE_FREQUENCY) {
+    // In a proper implementation, copy parameters.
+    targetDQN = std::make_unique<NeuralNetwork>(*onlineDQN);
+    updateCounter = 0;
+  }
+}
+
 void RLAgent::learn(const Experience &exp) {
-  StateKey currentKey = exp.state.toKey();
-  StateKey nextKey = exp.nextState.toKey();
+  updateReplayBuffer(exp);
+  sampleAndTrain();
+}
 
-  // Get current Q value
-  float currentQ = m_qTable[currentKey.toString()][exp.action.type];
+void RLAgent::applyAction(const Action &action) {
+  const float MOVE_FORCE = 500.0f;
+  if (action.moveLeft)
+    m_character->mover.applyForce(Vector2f(-MOVE_FORCE, 0));
+  if (action.moveRight)
+    m_character->mover.applyForce(Vector2f(MOVE_FORCE, 0));
+  if (action.jump && m_character->onGround)
+    m_character->jump();
+  if (action.attack)
+    m_character->attack();
+  if (action.block)
+    m_character->block(); // You must implement Character::block()
+}
 
-  // Find max Q value for next state
-  float maxNextQ = -std::numeric_limits<float>::max();
-  for (const auto &pair : m_qTable[nextKey.toString()]) {
-    maxNextQ = std::max(maxNextQ, pair.second);
+void RLAgent::update(float deltaTime, const Character &opponent) {
+  m_episodeTime += deltaTime;
+  m_timeSinceLastAction += deltaTime;
+  m_currentActionDuration += deltaTime;
+
+  State newState = getCurrentState(opponent);
+  // Only select a new action after the hold duration expires.
+  if (m_currentActionDuration >= m_actionHoldDuration) {
+    Action newAction = selectAction(newState);
+
+    // If the new action is of the same movement type as the last one,
+    // extend the hold duration (smoother movement).
+    if ((newAction.moveLeft && m_lastAction.moveLeft) ||
+        (newAction.moveRight && m_lastAction.moveRight)) {
+      m_actionHoldDuration = 0.5f; // longer hold for movement
+    } else {
+      m_actionHoldDuration = 0.3f;
+    }
+
+    // Update reward signals based on health differences.
+    float healthDiff = m_character->health - m_lastHealth;
+    if (healthDiff != 0) {
+      if (healthDiff < 0)
+        m_consecutiveWhiffs++;
+      else
+        m_consecutiveWhiffs = 0;
+      m_timeSinceLastAction = 0;
+    }
+    m_lastHealth = m_character->health;
+
+    float reward = calculateReward(newState, newAction);
+    m_totalReward += reward;
+    Experience exp{m_currentState, m_lastAction, reward, newState};
+    learn(exp);
+    m_currentState = newState;
+    m_lastAction = newAction;
+    m_currentActionDuration = 0;
+    Logger::debug("Selected action: %s", actionTypeToString(m_lastAction.type));
   }
-
-  // Q-learning update
-  float newQ =
-      currentQ +
-      m_learningRate * (exp.reward + m_discountFactor * maxNextQ - currentQ);
-
-  m_qTable[currentKey.toString()][exp.action.type] = newQ;
-
-  Logger::debug("Learning from experience - Reward: " +
-                std::to_string(exp.reward));
-}
-
-void RLAgent::updateRadar() {
-  m_radarBlips.clear();
-
-  // Add opponent position blip
-  RadarBlip opponentBlip;
-  opponentBlip.position = Vector2f(m_currentState.relativePositionX, 0) +
-                          Vector2f(0, m_currentState.relativePositionY);
-  opponentBlip.intensity = 1.0f;
-  m_radarBlips.push_back(opponentBlip);
-}
-
-void RLAgent::render(SDL_Renderer *renderer) {
-  // Radar
-  SDL_Rect radarBounds = {10, 10, 150, 150};
-  RLVisualization::renderRadar(renderer,
-                               Vector2f(m_currentState.relativePositionX,
-                                        m_currentState.relativePositionY),
-                               m_currentState.distanceToOpponent, radarBounds);
-
-  // State panel
-  SDL_Rect stateBounds = {10, 170, 150, 150};
-  RLVisualization::renderStatePanel(
-      renderer, stateBounds, m_currentState.myHealth,
-      m_currentState.opponentHealth, actionTypeToString(m_lastAction.type),
-      m_totalReward, getLastActionConfidence());
-}
-
-void RLAgent::renderRadar(SDL_Renderer *renderer) {
-  // Draw radar background
-  SDL_SetRenderDrawColor(renderer, 0, 50, 0, 100);
-  SDL_Rect radarRect = {10, 10, 200, 200};
-  SDL_RenderFillRect(renderer, &radarRect);
-
-  // Draw radar grid
-  SDL_SetRenderDrawColor(renderer, 0, 100, 0, 255);
-  for (int i = 0; i <= 4; ++i) {
-    int x = radarRect.x + (radarRect.w * i) / 4;
-    int y = radarRect.y + (radarRect.h * i) / 4;
-    SDL_RenderDrawLine(renderer, x, radarRect.y, x, radarRect.y + radarRect.h);
-    SDL_RenderDrawLine(renderer, radarRect.x, y, radarRect.x + radarRect.w, y);
-  }
-
-  // Draw radar blips
-  SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-  for (const auto &blip : m_radarBlips) {
-    int x = radarRect.x + radarRect.w / 2 +
-            static_cast<int>(blip.position.x * 0.1f);
-    int y = radarRect.y + radarRect.h / 2 +
-            static_cast<int>(blip.position.y * 0.1f);
-    SDL_Rect blipRect = {x - 2, y - 2, 5, 5};
-    SDL_RenderFillRect(renderer, &blipRect);
-  }
-}
-
-void RLAgent::renderDebugInfo(SDL_Renderer *renderer) {
-  // Draw debug text
-  SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-  SDL_Rect debugRect = {220, 10, 200, 200};
-  SDL_RenderDrawRect(renderer, &debugRect);
-
-  // TODO: Add text rendering for debug info:
-  // - Current state values
-  // - Selected action
-  // - Current reward
-  // - Episode statistics
-}
-
-void RLAgent::logDecision(const State &state, const Action &action,
-                          float reward) {
-  std::string actionStr = std::string(action.moveLeft ? "Left " : "") +
-                          (action.moveRight ? "Right " : "") +
-                          (action.jump ? "Jump " : "") +
-                          (action.attack ? "Attack" : "");
-
-  Logger::debug("RL Decision - Action: " + actionStr +
-                " Reward: " + std::to_string(reward) +
-                " Distance: " + std::to_string(state.distanceToOpponent));
+  applyAction(m_lastAction);
 }
 
 void RLAgent::reset() {
   m_totalReward = 0;
   m_episodeTime = 0;
-  m_timeSinceLastAction = 0;
-  m_replayBuffer.clear();
+  m_currentState = getCurrentState(*m_character);
+  m_lastAction = Action::fromType(ActionType::None);
+  replayBuffer.clear();
 }
 
 void RLAgent::startNewEpoch() {
-  // Reset positions
-  m_character->mover.position = Vector2f(100, 100);
-
-  // Reset health
+  m_character->mover.position = {100, 100};
   m_character->health = m_character->maxHealth;
-
-  // Reset state
   reset();
-
-  Logger::info("Starting new epoch - Total reward from previous epoch: " +
-               std::to_string(m_totalReward));
-}
-
-void RLAgent::initQTable() {
-  std::vector<ActionType> allActions = {
-      ActionType::None,           ActionType::MoveLeft,
-      ActionType::MoveRight,      ActionType::Jump,
-      ActionType::Attack,         ActionType::JumpAttack,
-      ActionType::MoveLeftAttack, ActionType::MoveRightAttack};
-
-  // Initialize Q-values to small random values
-  for (const auto &action : allActions) {
-    for (int dist = 0; dist < 5; dist++) {
-      for (int health = -2; health <= 2; health++) {
-        for (int attacking = 0; attacking <= 1; attacking++) {
-          for (int oppAttacking = 0; oppAttacking <= 1; oppAttacking++) {
-            for (int onGround = 0; onGround <= 1; onGround++) {
-              StateKey key{dist, health, static_cast<bool>(attacking),
-                           static_cast<bool>(oppAttacking),
-                           static_cast<bool>(onGround)};
-              m_qTable[key.toString()][action] = m_dist(m_gen) * 0.1f;
-            }
-          }
-        }
-      }
-    }
-  }
-}
-void RLAgent::renderStateDisplay(SDL_Renderer *renderer) {
-  // Draw state info panel
-  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 200);
-  SDL_Rect stateRect = {10, 400, 200, 180};
-  SDL_RenderFillRect(renderer, &stateRect);
-
-  // Draw decision confidence bar
-  float confidence = getLastActionConfidence();
-  SDL_SetRenderDrawColor(renderer,
-                         static_cast<Uint8>(255 * (1.0f - confidence)),
-                         static_cast<Uint8>(255 * confidence), 0, 255);
-  SDL_Rect confRect = {stateRect.x + 5, stateRect.y + 5,
-                       static_cast<int>(190 * confidence), 20};
-  SDL_RenderFillRect(renderer, &confRect);
-
-  // Draw state value indicators
-  renderStateValues(renderer, stateRect);
-
-  // Draw action intention indicators
-  renderActionIntentions(renderer, stateRect);
-}
-
-void RLAgent::renderStateValues(SDL_Renderer *renderer,
-                                const SDL_Rect &bounds) {
-  const int BAR_HEIGHT = 15;
-  const int BAR_SPACING = 20;
-  int y = bounds.y + 30;
-
-  // Distance gauge
-  float distanceRatio = m_currentState.distanceToOpponent / 400.0f;
-  drawHorizontalGauge(renderer, bounds.x + 5, y, 190, BAR_HEIGHT, distanceRatio,
-                      {0, 255, 255, 255});
-  y += BAR_SPACING;
-
-  // Health advantage gauge
-  float healthAdvantage =
-      (m_currentState.myHealth - m_currentState.opponentHealth + 1.0f) * 0.5f;
-  drawHorizontalGauge(renderer, bounds.x + 5, y, 190, BAR_HEIGHT,
-                      healthAdvantage, {255, 255, 0, 255});
-  y += BAR_SPACING;
-
-  // Attack readiness gauge
-  float attackReadiness = 1.0f - (m_timeSinceLastAction / 2.0f);
-  drawHorizontalGauge(renderer, bounds.x + 5, y, 190, BAR_HEIGHT,
-                      attackReadiness, {255, 0, 0, 255});
-}
-
-void RLAgent::drawHorizontalGauge(SDL_Renderer *renderer, int x, int y,
-                                  int width, int height, float value,
-                                  SDL_Color color) {
-  // Background
-  SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
-  SDL_Rect bgRect = {x, y, width, height};
-  SDL_RenderFillRect(renderer, &bgRect);
-
-  // Value bar
-  SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-  SDL_Rect valueRect = {x, y, static_cast<int>(width * value), height};
-  SDL_RenderFillRect(renderer, &valueRect);
-
-  // Border
-  SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-  SDL_RenderDrawRect(renderer, &bgRect);
-}
-
-void RLAgent::renderActionIntentions(SDL_Renderer *renderer,
-                                     const SDL_Rect &bounds) {
-  int y = bounds.y + 100;
-  const int ARROW_SIZE = 20;
-
-  // Movement intentions
-  if (m_lastAction.moveLeft || m_lastAction.moveRight) {
-    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-    drawArrow(renderer, bounds.x + bounds.w / 2, y,
-              bounds.x + bounds.w / 2 +
-                  (m_lastAction.moveRight ? ARROW_SIZE : -ARROW_SIZE),
-              y, 5);
-  }
-
-  // Attack intention
-  if (m_lastAction.attack) {
-    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-    const SDL_Point points[3] = {
-        {bounds.x + bounds.w / 2, y + ARROW_SIZE},
-        {bounds.x + bounds.w / 2 + ARROW_SIZE / 2, y + ARROW_SIZE / 2},
-        {bounds.x + bounds.w / 2 - ARROW_SIZE / 2, y + ARROW_SIZE / 2}};
-    for (int i = 0; i < 2; i++) {
-      SDL_RenderDrawLine(renderer, points[i].x, points[i].y, points[i + 1].x,
-                         points[i + 1].y);
-    }
-    SDL_RenderDrawLine(renderer, points[2].x, points[2].y, points[0].x,
-                       points[0].y);
-  }
-}
-
-float RLAgent::getRemainingTime() {
-  return std::fmax(m_episodeDuration - m_episodeTime, 0.0f);
-}
-
-float RLAgent::getLastActionConfidence() const {
-  StateKey currentKey = m_currentState.toKey();
-  std::string stateStr = currentKey.toString();
-
-  if (m_qTable.find(stateStr) == m_qTable.end()) {
-    return 0.0f;
-  }
-
-  // Find the maximum Q-value for the current state
-  float maxQ = -std::numeric_limits<float>::max();
-  float minQ = std::numeric_limits<float>::max();
-
-  const auto &actionValues = m_qTable.at(stateStr);
-  for (const auto &[action, value] : actionValues) {
-    maxQ = std::max(maxQ, value);
-    minQ = std::min(minQ, value);
-  }
-
-  // Get the Q-value of the last action
-  float lastActionQ = actionValues.at(m_lastAction.type);
-
-  // Normalize to [0,1] range
-  float range = maxQ - minQ;
-  if (range > 0) {
-    return (lastActionQ - minQ) / range;
-  }
-  return 0.5f; // Default confidence if all values are equal
-}
-
-void RLAgent::applyAction(const Action &action) {
-  const float MOVE_FORCE = 500.0f;
-  bool isMoving = false;
-
-  if (action.moveLeft || action.moveRight) {
-    isMoving = true;
-    m_character->isMoving = true;
-    m_character->inputDirection = action.moveRight ? 1 : -1;
-    m_character->mover.applyForce(
-        Vector2f(MOVE_FORCE * (action.moveRight ? 1.0f : -1.0f), 0));
-
-    // Only change to walk animation if not attacking
-    if (m_character->animator->getCurrentFramePhase() == FramePhase::None) {
-      m_character->animator->play("Walk");
-    }
-  } else {
-    m_character->isMoving = false;
-    m_character->inputDirection = 0;
-
-    // Return to idle if not in another animation
-    if (m_character->animator->getCurrentFramePhase() == FramePhase::None) {
-      m_character->animator->play("Idle");
-    }
-  }
-
-  if (action.jump && m_character->onGround) {
-    m_character->jump();
-  }
-
-  if (action.attack) {
-    FramePhase currentPhase = m_character->animator->getCurrentFramePhase();
-    auto currentAnim = m_character->animator->getCurrentAnimationKey();
-
-    // Combo system
-    if (currentPhase == FramePhase::Recovery) {
-      if (currentAnim == "Attack") {
-        m_character->animator->play("Attack 2");
-      } else if (currentAnim == "Attack 2") {
-        m_character->animator->play("Attack 3");
-      }
-    } else if (currentPhase == FramePhase::None) {
-      m_character->animator->play("Attack");
-    }
-
-    m_timeSinceLastAction = 0;
-  }
-}
-
-void RLAgent::drawArrow(SDL_Renderer *renderer, int x1, int y1, int x2, int y2,
-                        int arrowSize) {
-  // Draw main line
-  SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
-
-  // Calculate arrow head
-  float angle = std::atan2(y2 - y1, x2 - x1);
-  float a1 = angle + M_PI * 0.8f;
-  float a2 = angle - M_PI * 0.8f;
-
-  // Draw arrow head lines
-  SDL_RenderDrawLine(renderer, x2, y2,
-                     static_cast<int>(x2 - arrowSize * std::cos(a1)),
-                     static_cast<int>(y2 - arrowSize * std::sin(a1)));
-  SDL_RenderDrawLine(renderer, x2, y2,
-                     static_cast<int>(x2 - arrowSize * std::cos(a2)),
-                     static_cast<int>(y2 - arrowSize * std::sin(a2)));
+  Logger::info("Starting new epoch, reward reset.");
 }

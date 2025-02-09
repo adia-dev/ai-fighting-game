@@ -32,12 +32,6 @@ public:
   static void init() {
     auto &logger = get();
     std::lock_guard<std::mutex> lock(logger.m_mutex);
-    logger.m_file_stream.open(logger.m_config.log_file,
-                              std::ios::out | std::ios::app);
-    if (!logger.m_file_stream.is_open()) {
-      throw std::runtime_error("Failed to open log file: " +
-                               logger.m_config.log_file);
-    }
   }
 
   static const std::deque<std::pair<LogLevel, std::string>> &messages() {
@@ -128,7 +122,6 @@ private:
     } else {
       std::cout << formatted_message << std::endl;
     }
-    m_file_stream << formatted_message << std::endl;
   }
 
   std::string format_message(LogLevel level, const std::string &message) {
@@ -209,10 +202,7 @@ private:
 
 private:
   Logger() = default;
-  ~Logger() {
-    if (m_file_stream.is_open())
-      m_file_stream.close();
-  }
+  ~Logger() {}
 
   Logger(const Logger &) = delete;
   Logger(Logger &&) = delete;
@@ -221,6 +211,5 @@ private:
 
   LoggerConfig m_config;
   std::mutex m_mutex;
-  std::ofstream m_file_stream;
   std::deque<std::pair<LogLevel, std::string>> m_messages;
 };

@@ -32,8 +32,9 @@ bool FightSystem::processHit(Character &attacker, Character &defender) {
     // Check for block first
     if (CollisionSystem::checkCollision(hbRect, defenderBlockBox)) {
       defender.applyDamage(2, true);
-      Logger::debug("Block registered! Small Damage applied.");
       defender.animator->play("Block");
+      defender.lastBlockEffective = true;
+      attacker.lastAttackLanded = false;
       hitRegistered = true;
       break;
     }
@@ -41,8 +42,9 @@ bool FightSystem::processHit(Character &attacker, Character &defender) {
     // Then check for hit
     if (CollisionSystem::checkCollision(hbRect, defenderHurtbox)) {
       defender.applyDamage(10);
-      Logger::debug("Hit registered! Damage applied.");
       defender.animator->play("Hit");
+      attacker.lastAttackLanded = true;
+      defender.lastBlockEffective = false;
       hitRegistered = true;
       break;
     }
