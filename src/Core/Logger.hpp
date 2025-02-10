@@ -4,7 +4,6 @@
 #include <cstdio>
 #include <ctime>
 #include <deque>
-#include <fstream>
 #include <iostream>
 #include <mutex>
 #include <sstream>
@@ -23,7 +22,7 @@ class Logger {
   };
 
   struct LoggerConfig {
-    LogLevel level = LogLevel::Debug;
+    LogLevel level = LogLevel::Info;
     // std::string log_file = std::string(LOG_DIR) + "/app.log";
     bool enable_colors = true;
   };

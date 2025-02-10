@@ -82,7 +82,12 @@ State RLAgent::getCurrentState(const Character &opponent) {
   State state;
   Vector2f toOpponent = opponent.mover.position - m_character->mover.position;
   state.distanceToOpponent = toOpponent.length();
-  state.relativePositionX = toOpponent.x;
+
+  // Adjust relative X based on which way the character is facing.
+  // If the character is flipped (facing left), multiply by -1 so that
+  // "in front" always yields a positive number.
+  int facing = m_character->animator->getFlip() ? -1 : 1;
+  state.relativePositionX = toOpponent.x * facing;
   state.relativePositionY = toOpponent.y;
   state.myHealth =
       static_cast<float>(m_character->health) / m_character->maxHealth;
@@ -103,7 +108,9 @@ State RLAgent::getCurrentState(const Character &opponent) {
   state.opponentVelocityY = m_opponentVelocity.y;
 
   float posX = m_character->mover.position.x;
-  state.isCornered = (posX < 150 || posX > 850);
+  state.isCornered =
+      (posX < m_config.ai.deadzoneBoundary ||
+       posX > m_config.windowWidth - m_config.ai.deadzoneBoundary);
 
   std::array<ActionType, 10> selfHist = {ActionType::Noop, ActionType::Noop,
                                          ActionType::Noop};
@@ -197,9 +204,9 @@ Action RLAgent::selectAction(const State &state) {
 
   // Positioning overrides
   float posX = m_character->mover.position.x;
-  if (posX < 150.f) {
+  if (posX < m_config.ai.deadzoneBoundary) {
     selectedAction = Action::fromType(ActionType::MoveRight);
-  } else if (posX > 850.f) {
+  } else if (posX > m_config.windowWidth - m_config.ai.deadzoneBoundary) {
     selectedAction = Action::fromType(ActionType::MoveLeft);
   }
 
@@ -391,16 +398,19 @@ void RLAgent::applyAction(const Action &action) {
       (currentAnim == "Attack" || currentAnim == "Attack 2" ||
        currentAnim == "Attack 3" || currentAnim == "Block");
 
-  const float MOVE_FORCE = 500.0f;
+  float moveForce = m_config.moveForce;
   if (!isAttackingOrBlocking) {
-    if (action.moveLeft)
-      m_character->mover.applyForce(Vector2f(-MOVE_FORCE, 0));
-    m_character->isMoving = true;
-    m_character->inputDirection = -1;
-    if (action.moveRight)
-      m_character->mover.applyForce(Vector2f(MOVE_FORCE, 0));
-    m_character->isMoving = true;
-    m_character->inputDirection = 1;
+    if (action.moveLeft) {
+      m_character->mover.applyForce(Vector2f(-moveForce, 0));
+      m_character->isMoving = true;
+      m_character->inputDirection = -1;
+    } else if (action.moveRight) {
+      m_character->mover.applyForce(Vector2f(moveForce, 0));
+      m_character->isMoving = true;
+      m_character->inputDirection = 1;
+    } else {
+      m_character->isMoving = false;
+    }
   }
   if (action.jump && m_character->onGround)
     m_character->jump();

@@ -41,7 +41,11 @@ bool FightSystem::processHit(Character &attacker, Character &defender) {
     // Then check for hit
     if (CollisionSystem::checkCollision(hbRect, defenderHurtbox)) {
       int randomHitAnimation = rand() % 3 + 1;
-      defender.animator->play("Hit " + std::to_string(randomHitAnimation));
+      if (randomHitAnimation == 1) {
+        defender.animator->play("Hit");
+      } else {
+        defender.animator->play("Hit " + std::to_string(randomHitAnimation));
+      }
       attacker.lastAttackLanded = true;
       defender.lastBlockEffective = false;
 

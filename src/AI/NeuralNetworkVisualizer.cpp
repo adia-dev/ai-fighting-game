@@ -1,8 +1,8 @@
 #include "NeuralNetworkVisualizer.hpp"
 #include "Core/Logger.hpp"
 #include <fstream>
-#include <nlohmann/json.hpp>
 #include <sstream>
+#include <utilities/json.hpp>
 
 using json = nlohmann::json;
 
