@@ -26,7 +26,7 @@ public:
   void reset();
   void startNewEpoch();
 
-  Action lastAction() { return m_lastAction; }
+  Action lastAction() const { return m_lastAction; }
   float totalReward() { return m_totalReward; }
   void reportWin(bool didWin);
 

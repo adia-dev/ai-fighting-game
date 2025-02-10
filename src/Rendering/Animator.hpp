@@ -66,4 +66,5 @@ private:
   float m_timer;
   bool m_flip;
   bool m_reverse;
+  bool m_completedOnce = false;
 };

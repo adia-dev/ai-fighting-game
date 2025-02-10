@@ -55,6 +55,8 @@ public:
 
   void block();
 
+  void updateJumpAnimation();
+
 private:
   Config &m_config;
 };

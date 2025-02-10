@@ -90,6 +90,7 @@ private:
   bool m_showDebugWindow = true;
   bool m_showPerformance = false;
   bool m_showAIDebug = true;
+  bool m_showDebugUI = false;
   bool m_showGameView = true;
   bool m_showConfigEditor = false;
   bool m_paused = false;

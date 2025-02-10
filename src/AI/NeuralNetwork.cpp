@@ -58,8 +58,13 @@ void NeuralNetwork::train(const std::vector<float> &input,
   assert(output.size() == target.size());
 
   std::vector<float> delta(output.size(), 0.0f);
+  const float delta_threshold = 1.0f;
   for (size_t i = 0; i < output.size(); ++i) {
-    delta[i] = output[i] - target[i];
+    float error = output[i] - target[i];
+    if (std::fabs(error) <= delta_threshold)
+      delta[i] = error;
+    else
+      delta[i] = delta_threshold * ((error > 0) ? 1.0f : -1.0f);
   }
 
   for (int l = layers.size() - 1; l >= 0; --l) {

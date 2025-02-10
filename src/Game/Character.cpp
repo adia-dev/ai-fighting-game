@@ -190,80 +190,54 @@ void Character::applyDamage(int damage, bool survive) {
 }
 
 void Character::update(float deltaTime) {
-  SDL_Rect collRect = getHitboxRect();
-  if (collRect.h == 0) {
-    collRect = animator->getCurrentFrameRect();
-  }
-
+  // Update physics and basic state first
   if (!onGround) {
     mover.applyForce(Vector2f(0, m_config.gravity));
   }
 
+  // Update movement and collision
+  mover.update(deltaTime);
+
+  // Update stamina
   const float staminaRecoveryRate = 50.0f;
   stamina = std::min(maxStamina, stamina + staminaRecoveryRate * deltaTime);
 
-  mover.update(deltaTime);
+  // Update animation state
   animator->update(deltaTime);
 
-  collRect = getHitboxRect();
-  if (collRect.h == 0) {
-    collRect = animator->getCurrentFrameRect();
-  }
-
-  float charBottom = mover.position.y + collRect.h;
-  float groundY = m_config.groundLevel;
-
-  if (charBottom >= groundY) {
-    mover.position.y = groundY - collRect.h;
-    mover.velocity.y = 0;
-    onGround = true;
-    groundFrames++;
-  } else if (charBottom < groundY - m_config.groundThreshold) {
-    onGround = false;
-    groundFrames = 0;
-  }
-
-  if (animator->getCurrentAnimationKey() == "Jump") {
-
-    float vy = mover.velocity.y;
-    int jumpFrame = 0;
-
-    if (vy < -200)
-      jumpFrame = 0;
-    else if (vy < -100)
-      jumpFrame = 3;
-    else if (std::abs(vy) < 50)
-      jumpFrame = 6;
-    else if (vy < 100)
-      jumpFrame = 9;
-    else
-      jumpFrame = 12;
-
-    animator->setFrameIndex(jumpFrame);
-  }
-
+  // Handle animation transitions
   FramePhase currentPhase = animator->getCurrentFramePhase();
+  std::string currentAnim = animator->getCurrentAnimationKey();
 
-  if (currentPhase == FramePhase::Active ||
-      currentPhase == FramePhase::Startup) {
-
+  // Special case for jump animation
+  if (currentAnim == "Jump") {
+    updateJumpAnimation();
     return;
   }
 
-  if (currentPhase == FramePhase::Recovery &&
-      !animator->isAnimationFinished()) {
-    return;
-  }
-
-  bool shouldBeIdle = !isMoving || (std::abs(mover.velocity.x) < 1.0f &&
-                                    std::abs(mover.velocity.y) < 1.0f);
-
-  if (shouldBeIdle) {
-    if (animator->getCurrentAnimationKey() != "Idle") {
+  // Handle attack chain transitions
+  if (currentPhase == FramePhase::Recovery && animator->isAnimationFinished()) {
+    if (currentAnim == "Attack" || currentAnim == "Attack 2" ||
+        currentAnim == "Attack 3") {
       animator->play("Idle");
     }
-  } else if (isMoving && animator->getCurrentAnimationKey() != "Walk") {
-    animator->play("Walk");
+  }
+
+  // Handle movement animations
+  if (currentPhase == FramePhase::None ||
+      (currentPhase == FramePhase::Recovery &&
+       animator->isAnimationFinished())) {
+
+    bool shouldBeIdle = !isMoving || (std::abs(mover.velocity.x) < 1.0f &&
+                                      std::abs(mover.velocity.y) < 1.0f);
+
+    if (shouldBeIdle) {
+      if (currentAnim != "Idle") {
+        animator->play("Idle");
+      }
+    } else if (isMoving && currentAnim != "Walk") {
+      animator->play("Walk");
+    }
   }
 }
 
@@ -356,4 +330,21 @@ void Character::updateFacing(const Character &target) {
   } else {
     animator->setReverse(false);
   }
+}
+void Character::updateJumpAnimation() {
+  float vy = mover.velocity.y;
+  int jumpFrame;
+
+  if (vy < -200)
+    jumpFrame = 0;
+  else if (vy < -100)
+    jumpFrame = 3;
+  else if (std::abs(vy) < 50)
+    jumpFrame = 6;
+  else if (vy < 100)
+    jumpFrame = 9;
+  else
+    jumpFrame = 12;
+
+  animator->setFrameIndex(jumpFrame);
 }

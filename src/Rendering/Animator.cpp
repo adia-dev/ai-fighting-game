@@ -18,8 +18,10 @@ void Animator::addAnimation(const std::string &key, const Animation &anim) {
 }
 
 void Animator::play(const std::string &key) {
-  if (m_currentKey == key)
+  if (m_currentKey == key && !m_completedOnce) {
     return;
+  }
+
   auto it = m_animations.find(key);
   if (it != m_animations.end()) {
     m_currentKey = key;
@@ -27,36 +29,60 @@ void Animator::play(const std::string &key) {
     m_currentFrameIndex =
         m_reverse ? (m_currentAnimation.frames.size() - 1) : 0;
     m_timer = 0.0f;
+    m_completedOnce = false;
     Logger::debug("Playing animation: " + key +
                   (m_reverse ? " (reverse)" : ""));
-  } else {
-    Logger::error("Animation key '" + key + "' not found.");
   }
 }
 
 void Animator::update(float deltaTime) {
-  if (m_currentAnimation.frames.empty())
+  if (m_currentAnimation.frames.empty()) {
     return;
+  }
+
+  // Accumulate time more precisely
   m_timer += deltaTime * 1000.0f;
-  float currentDuration =
-      m_currentAnimation.frames[m_currentFrameIndex].duration_ms;
-  if (m_timer >= currentDuration) {
-    m_timer -= currentDuration;
+
+  // Track how many frames we need to advance
+  while (m_timer >=
+         m_currentAnimation.frames[m_currentFrameIndex].duration_ms) {
+    m_timer -= m_currentAnimation.frames[m_currentFrameIndex].duration_ms;
+
     if (!m_reverse) {
       m_currentFrameIndex++;
       if (m_currentFrameIndex >=
           static_cast<int>(m_currentAnimation.frames.size())) {
-        m_currentFrameIndex =
-            m_currentAnimation.loop ? 0 : m_currentAnimation.frames.size() - 1;
+        if (m_currentAnimation.loop) {
+          m_currentFrameIndex = 0;
+          // Signal animation completion for non-looping animations
+          m_completedOnce = true;
+        } else {
+          m_currentFrameIndex = m_currentAnimation.frames.size() - 1;
+          m_completedOnce = true;
+        }
       }
     } else {
       m_currentFrameIndex--;
       if (m_currentFrameIndex < 0) {
-        m_currentFrameIndex =
-            m_currentAnimation.loop ? m_currentAnimation.frames.size() - 1 : 0;
+        if (m_currentAnimation.loop) {
+          m_currentFrameIndex = m_currentAnimation.frames.size() - 1;
+          m_completedOnce = true;
+        } else {
+          m_currentFrameIndex = 0;
+          m_completedOnce = true;
+        }
       }
     }
   }
+
+  Logger::debug("Animation State:");
+  Logger::debug("  Current Key: " + m_currentKey);
+  Logger::debug("  Frame Index: " + std::to_string(m_currentFrameIndex));
+  Logger::debug("  Timer: " + std::to_string(m_timer));
+  Logger::debug("  Phase: " +
+                std::string(frame_phase_to_string(getCurrentFramePhase())));
+  Logger::debug("  Completed Once: " +
+                std::string(m_completedOnce ? "true" : "false"));
 }
 
 void Animator::render(SDL_Renderer *renderer, int x, int y, float scale) {

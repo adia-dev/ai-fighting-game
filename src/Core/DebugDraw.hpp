@@ -28,15 +28,19 @@ public:
     ImGui::Text("Current Stance: %s", stanceStr);
 
     ImGui::SeparatorText("Action History");
-    ImGui::Text("Self Actions:");
-    for (auto action : agent.getActionHistory()) {
-      ImGui::SameLine();
-      ImGui::Text("%s", actionTypeToString(action));
+
+    if (ImGui::CollapsingHeader("Self Actions")) {
+      Action lastAction = agent.lastAction();
+      ImGui::Text("Last Action: %s", actionTypeToString(lastAction.type));
+
+      for (auto action : agent.getActionHistory()) {
+        ImGui::Text("%s", actionTypeToString(action));
+      }
     }
-    ImGui::Text("Opponent Actions:");
-    for (auto action : agent.getOpponentActionHistory()) {
-      ImGui::SameLine();
-      ImGui::Text("%s", actionTypeToString(action));
+    if (ImGui::CollapsingHeader("Opponent Actions:")) {
+      for (auto action : agent.getOpponentActionHistory()) {
+        ImGui::Text("%s", actionTypeToString(action));
+      }
     }
 
     ImGui::End();

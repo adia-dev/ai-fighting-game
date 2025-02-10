@@ -22,47 +22,49 @@ ImU32 NeuralNetworkTreeView::getWeightColor(float weight) const {
 void NeuralNetworkTreeView::render() {
   if (!m_network)
     return;
-  // Retrieve the network layers using our accessor.
   const std::vector<Layer> &layers = m_network->getLayers();
   if (layers.empty())
     return;
 
   ImGui::Begin("Neural Network Tree View");
 
-  // Get current ImGui window draw list and window position.
+  // Get window position and size:
   ImDrawList *draw_list = ImGui::GetWindowDrawList();
   ImVec2 winPos = ImGui::GetWindowPos();
   ImVec2 winSize = ImGui::GetWindowSize();
 
-  // Define margins.
-  float marginX = 50.0f;
-  float marginY = 50.0f;
+  // Add some padding at the top
+  float topPadding = 20.0f;
+  float sidePadding = 20.0f;
+  ImGui::Dummy(ImVec2(winSize.x, topPadding)); // push content down
+
+  // Define margins based on the window size (with extra padding)
+  float marginX = sidePadding;
+  float marginY = topPadding;
   float availableWidth = winSize.x - 2 * marginX;
   float availableHeight = winSize.y - 2 * marginY;
 
   int numLayers = layers.size();
   std::vector<float> layerXPositions;
-  // Compute X positions for each layer.
   for (int i = 0; i < numLayers; ++i) {
     float x = winPos.x + marginX + (availableWidth * i) / (numLayers - 1);
     layerXPositions.push_back(x);
   }
 
-  // Compute node positions for each layer.
+  // Compute positions for each neuron (with padding)
   std::vector<std::vector<ImVec2>> nodePositions(numLayers);
   for (int l = 0; l < numLayers; ++l) {
     const Layer &layer = layers[l];
     int nNeurons = layer.outputSize;
     std::vector<ImVec2> positions;
     for (int i = 0; i < nNeurons; ++i) {
-      // Evenly space neurons vertically.
       float y = winPos.y + marginY + availableHeight * (i + 0.5f) / nNeurons;
       positions.push_back(ImVec2(layerXPositions[l], y));
     }
     nodePositions[l] = positions;
   }
 
-  // Draw connections between layers.
+  // Draw connections (unchanged)
   for (int l = 0; l < numLayers - 1; ++l) {
     const Layer &currentLayer = layers[l];
     const Layer &nextLayer = layers[l + 1];
@@ -70,7 +72,6 @@ void NeuralNetworkTreeView::render() {
       ImVec2 start = nodePositions[l][i];
       for (int j = 0; j < nextLayer.outputSize; ++j) {
         ImVec2 end = nodePositions[l + 1][j];
-        // Use weight value from the next layer (from neuron j connected to i).
         float weight = nextLayer.weights[j][i];
         ImU32 col = getWeightColor(weight);
         draw_list->AddLine(start, end, col, 1.0f);
@@ -78,19 +79,16 @@ void NeuralNetworkTreeView::render() {
     }
   }
 
-  // Draw nodes for each layer.
-  float nodeRadius = 5.0f;
+  // Draw nodes and labels (you can adjust the node radius as needed)
+  float nodeRadius = 4.0f; // smaller radius for clarity
   for (int l = 0; l < numLayers; ++l) {
     for (const auto &pos : nodePositions[l]) {
       draw_list->AddCircleFilled(pos, nodeRadius, IM_COL32(200, 200, 200, 255));
     }
-  }
-
-  // Optionally, draw layer labels.
-  for (int l = 0; l < numLayers; ++l) {
+    // Label each layer
     std::stringstream ss;
     ss << "Layer " << l;
-    draw_list->AddText(ImVec2(layerXPositions[l] - 20, winPos.y + 10),
+    draw_list->AddText(ImVec2(layerXPositions[l] - 20, winPos.y + 5),
                        IM_COL32(255, 255, 255, 255), ss.str().c_str());
   }
 

@@ -364,12 +364,25 @@ void RLAgent::updateReplayBuffer(const Experience &exp) {
 void RLAgent::sampleAndTrain() {
   if (replayBuffer.size() < BATCH_SIZE)
     return;
-  std::vector<PrioritizedExperience> batch;
-  for (size_t i = 0; i < BATCH_SIZE; ++i) {
-    auto pe = replayBuffer.top();
+
+  // Copy experiences into a vector for random sampling.
+  std::vector<PrioritizedExperience> experiences;
+  while (!replayBuffer.empty()) {
+    experiences.push_back(replayBuffer.top());
     replayBuffer.pop();
-    batch.push_back(pe);
   }
+
+  // Shuffle and select a mini-batch.
+  std::shuffle(experiences.begin(), experiences.end(), m_gen);
+  std::vector<PrioritizedExperience> batch;
+  for (size_t i = 0; i < BATCH_SIZE && i < experiences.size(); ++i)
+    batch.push_back(experiences[i]);
+
+  // Reinsert all experiences back into the replay buffer.
+  for (auto &exp : experiences)
+    replayBuffer.push(exp);
+
+  // Use the batch to update the network.
   for (auto &pe : batch) {
     auto s = stateToVector(pe.exp.state);
     auto s_next = stateToVector(pe.exp.nextState);
@@ -379,11 +392,6 @@ void RLAgent::sampleAndTrain() {
     int action_index = static_cast<int>(pe.exp.action.type);
     current_q[action_index] = pe.exp.reward + m_discountFactor * max_next_q;
     onlineDQN->train(s, current_q, m_learningRate);
-  }
-  updateCounter += BATCH_SIZE;
-  if (updateCounter >= TARGET_UPDATE_FREQUENCY) {
-    targetDQN = std::make_unique<NeuralNetwork>(*onlineDQN);
-    updateCounter = 0;
   }
 }
 

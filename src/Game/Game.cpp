@@ -130,17 +130,12 @@ void Game::run() {
 
           if (event.type == SDL_QUIT)
             emscripten_cancel_main_loop();
+        }
 
-          ImGuiIO &io = ImGui::GetIO();
-          if (!io.WantCaptureMouse && !io.WantCaptureKeyboard) {
-            if (event.type == SDL_KEYDOWN) {
-              if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
-                game->m_headlessMode = false;
-              } else if (event.key.keysym.scancode == SDL_SCANCODE_TAB) {
-                game->m_headlessMode = true;
-              }
-            }
-          }
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+          game->m_showDebugUI = false;
+        } else if (ImGui::IsKeyPressed(ImGuiKey_Tab)) {
+          game->m_showDebugUI = !game->m_showDebugUI;
         }
 
         Uint64 currentCounter = SDL_GetPerformanceCounter();
@@ -178,17 +173,12 @@ void Game::run() {
         SDL_Delay(10);
         continue;
       }
+    }
 
-      ImGuiIO &io = ImGui::GetIO();
-      if (!io.WantCaptureMouse && !io.WantCaptureKeyboard) {
-        if (event.type == SDL_KEYDOWN) {
-          if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
-            m_headlessMode = false;
-          } else if (event.key.keysym.scancode == SDL_SCANCODE_TAB) {
-            m_headlessMode = true;
-          }
-        }
-      }
+    if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+      m_showDebugUI = false;
+    } else if (ImGui::IsKeyPressed(ImGuiKey_Tab)) {
+      m_showDebugUI = !m_showDebugUI;
     }
 
     Uint64 currentCounter = SDL_GetPerformanceCounter();
@@ -460,6 +450,8 @@ void Game::renderBackground() {
 }
 
 void Game::renderDebugUI() {
+  if (!m_showDebugUI)
+    return;
 
   ImGuiWindowFlags window_flags =
       ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
