@@ -1,4 +1,6 @@
 #include "Game.hpp"
+#include "AI/NeuralNetworkTreeView.hpp"
+#include "AI/NeuralNetworkVisualizer.hpp"
 #include "Core/DebugDraw.hpp"
 #include "Core/GuiContext.hpp"
 #include "Core/Input.hpp"
@@ -386,21 +388,6 @@ void Game::render() {
   renderCharacterWithCamera(*m_player);
   renderCharacterWithCamera(*m_enemy);
   m_combatSystem.render(m_renderer->get());
-
-  // Render UI text
-  SDL_Color white = {255, 255, 255, 255};
-  drawText(m_renderer->get(), "Agent State:", 10, 350, white);
-  drawText(m_renderer->get(), "Health: " + std::to_string(m_player->health), 10,
-           370, white);
-  drawText(m_renderer->get(), "Delta time: " + std::to_string(m_deltaTime), 500,
-           200, white);
-  drawText(m_renderer->get(),
-           "Last Action: " + std::string(actionTypeToString(
-                                 m_player_agent->lastAction().type)),
-           10, 390, white);
-  drawText(m_renderer->get(),
-           "Reward: " + std::to_string(m_player_agent->totalReward()), 10, 410,
-           white);
 }
 
 void Game::renderDebugUI() {
@@ -519,6 +506,23 @@ void Game::renderAIDebugWindow() {
 
   DebugDraw::DrawAIState(*m_player_agent);
 
+  static NeuralNetworkVisualizer *nnVisualizer = nullptr;
+
+  // Then, inside renderAIDebugWindow(), add after your existing controls:
+  if (ImGui::CollapsingHeader("Neural Network Visualizer",
+                              ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (nnVisualizer == nullptr) {
+      nnVisualizer =
+          new NeuralNetworkVisualizer(m_player_agent->onlineDQN.get());
+    }
+    nnVisualizer->render();
+  }
+
+  if (ImGui::CollapsingHeader("Neural Network Tree View")) {
+    static NeuralNetworkTreeView treeView(m_player_agent->onlineDQN.get());
+    treeView.render();
+  }
+
   // Global Controls (existing code)
   if (ImGui::CollapsingHeader("Global Controls",
                               ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -627,14 +631,20 @@ void Game::renderAIDebugWindow() {
 
             // Reward History Graph
             ImGui::Separator();
-            static std::vector<float> rewardHistory(100, 0.0f);
-            static int offset = 0;
+            static std::unordered_map<std::string, std::vector<float>>
+                rewardHistories;
+            static std::unordered_map<std::string, int> rewardOffsets;
+            std::string idStr = charId;
+            if (rewardHistories.find(idStr) == rewardHistories.end()) {
+              rewardHistories[idStr] = std::vector<float>(100, 0.0f);
+              rewardOffsets[idStr] = 0;
+            }
+            std::vector<float> &rewardHistory = rewardHistories[idStr];
+            int &offset = rewardOffsets[idStr];
 
-            // Update history
             rewardHistory[offset] = agent->totalReward();
             offset = (offset + 1) % rewardHistory.size();
 
-            // Find min/max for better graph scaling
             float minReward =
                 *std::min_element(rewardHistory.begin(), rewardHistory.end());
             float maxReward =
@@ -709,6 +719,7 @@ void Game::renderAIDebugWindow() {
     // Draw a horizontal bar showing the style continuum.
     ImDrawList *draw_list = ImGui::GetWindowDrawList();
     ImVec2 pos = ImGui::GetCursorScreenPos();
+    pos.y += 20;
     float width = 300.0f;
     float height = 20.0f;
     // Draw the bar background.

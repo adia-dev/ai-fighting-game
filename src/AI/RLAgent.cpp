@@ -20,6 +20,7 @@ RLAgent::RLAgent(Character *character)
 
   onlineDQN = std::make_unique<NeuralNetwork>(state_dim);
   onlineDQN->addLayer(64, ActivationType::ReLU);
+  onlineDQN->addLayer(128, ActivationType::ReLU);
   onlineDQN->addLayer(num_actions, ActivationType::None);
 
   targetDQN = std::make_unique<NeuralNetwork>(state_dim);

@@ -58,6 +58,8 @@ public:
     return m_opponentActionHistory;
   }
   std::vector<float> m_qValueHistory; // For plotting Q-values in debug
+  std::unique_ptr<NeuralNetwork> onlineDQN;
+  std::unique_ptr<NeuralNetwork> targetDQN;
 
 private:
   std::vector<float> stateToVector(const State &state);
@@ -91,8 +93,6 @@ private:
   int m_consecutiveWhiffs;
   float m_lastOpponentHealth;
 
-  std::unique_ptr<NeuralNetwork> onlineDQN;
-  std::unique_ptr<NeuralNetwork> targetDQN;
   int state_dim;
   int num_actions;
 

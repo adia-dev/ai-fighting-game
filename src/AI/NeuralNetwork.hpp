@@ -40,6 +40,7 @@ struct Layer {
   std::vector<std::vector<float>> weights;
   std::vector<float> biases;
 
+  // For storing forward-pass values.
   std::vector<float> lastInput;
   std::vector<float> lastZ;
   std::vector<float> lastOutput;
@@ -55,13 +56,27 @@ class NeuralNetwork {
 public:
   NeuralNetwork(int inputSize);
 
+  // Adds a new layer with the specified number of neurons and activation.
   void addLayer(int numNeurons, ActivationType activation);
 
+  // Forward propagation.
   std::vector<float> forward(const std::vector<float> &input);
 
+  // Train using simple gradient descent.
   void train(const std::vector<float> &input, const std::vector<float> &target,
              float learningRate);
 
+  // Accessor methods for visualization.
+  const std::vector<Layer> &getLayers() const { return layers; }
+  void clearLayers() { layers.clear(); }
+  void setLayerParameters(size_t layerIndex,
+                          const std::vector<std::vector<float>> &weights,
+                          const std::vector<float> &biases) {
+    if (layerIndex >= layers.size())
+      throw std::runtime_error("Invalid layer index");
+    layers[layerIndex].weights = weights;
+    layers[layerIndex].biases = biases;
+  }
   size_t numLayers() const { return layers.size(); }
 
 private:
