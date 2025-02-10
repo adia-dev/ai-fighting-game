@@ -1,7 +1,7 @@
 #include "NeuralNetworkVisualizer.hpp"
 #include "Core/Logger.hpp"
 #include <fstream>
-#include <nlohmann/json.hpp> // Make sure you have the JSON library available
+#include <nlohmann/json.hpp>
 #include <sstream>
 
 using json = nlohmann::json;
@@ -15,7 +15,6 @@ void NeuralNetworkVisualizer::render() {
 
   ImGui::Begin("Neural Network Visualizer");
 
-  // We assume your NeuralNetwork has a GetLayers() method (added later)
   const auto &layers = network->getLayers();
   ImGui::Text("Neural Network Structure:");
   for (size_t i = 0; i < layers.size(); i++) {
@@ -46,7 +45,6 @@ void NeuralNetworkVisualizer::render() {
     }
   }
 
-  // Buttons for model operations.
   if (ImGui::Button("Export Model")) {
     if (ExportModel("model_export.json"))
       Logger::info("Model exported successfully.");

@@ -1,6 +1,4 @@
-// src/Game/FightSystem.cpp
 #include "FightSystem.hpp"
-#include "Core/Logger.hpp"
 #include "Data/Animation.hpp"
 #include "Game/CollisionSystem.hpp"
 #include <SDL.h>

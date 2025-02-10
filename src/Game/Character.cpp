@@ -1,4 +1,6 @@
 #include "Character.hpp"
+#include "Core/DebugEvents.hpp"
+#include "Core/DebugGlobals.hpp"
 #include "Core/Input.hpp"
 #include "Core/Logger.hpp"
 #include "Data/Animation.hpp"
@@ -141,6 +143,10 @@ void Character::applyDamage(int damage, bool survive) {
     health = survive ? 1 : 0;
   Logger::debug("Damage applied: " + std::to_string(damage) +
                 ". Health now: " + std::to_string(health));
+  // If floating damage is enabled, add a damage event.
+  if (g_showFloatingDamage) {
+    addDamageEvent(mover.position, damage);
+  }
 }
 
 void Character::update(float deltaTime) {

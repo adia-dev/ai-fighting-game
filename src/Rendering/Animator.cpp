@@ -1,5 +1,5 @@
-// src/Rendering/Animator.cpp
 #include "Rendering/Animator.hpp"
+#include "Core/DebugGlobals.hpp"
 #include "Core/Logger.hpp"
 #include "Data/Animation.hpp"
 #include <utility>
@@ -76,7 +76,7 @@ void Animator::render(SDL_Renderer *renderer, int x, int y, float scale) {
 
   // Debug: Draw hitboxes
   for (const auto &hitbox : frame.hitboxes) {
-    if (hitbox.enabled) {
+    if (g_showHitboxes && hitbox.enabled) {
       SDL_Rect hitRect;
       if (m_flip) {
         // Mirror the hitbox relative to the frame width when flipped
