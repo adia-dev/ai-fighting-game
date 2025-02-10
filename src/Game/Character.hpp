@@ -23,8 +23,10 @@ public:
   bool lastAttackLanded;
   bool lastBlockEffective;
 
+  // TODO: Change it to an enum
   // Last horizontal input: -1 for left, +1 for right, 0 for none.
   int inputDirection;
+  int comboCount = 0;
 
   // State
   CharacterState state;

@@ -2,6 +2,7 @@
 #include "Data/Animation.hpp"
 #include "Game/CollisionSystem.hpp"
 #include <SDL.h>
+#include <string>
 
 bool FightSystem::processHit(Character &attacker, Character &defender) {
   const std::vector<Hitbox> &hitboxes = attacker.animator->getCurrentHitboxes();
@@ -39,10 +40,18 @@ bool FightSystem::processHit(Character &attacker, Character &defender) {
 
     // Then check for hit
     if (CollisionSystem::checkCollision(hbRect, defenderHurtbox)) {
-      defender.applyDamage(10);
-      defender.animator->play("Hit");
+      int randomHitAnimation = rand() % 3 + 1;
+      defender.animator->play("Hit " + std::to_string(randomHitAnimation));
       attacker.lastAttackLanded = true;
       defender.lastBlockEffective = false;
+
+      // TODO: Make it dynamic based on the attack (should be on the state of
+      // the hitbox)
+      float baseImpulse = 200.0f;
+      defender.applyDamage(10 * attacker.comboCount * 1.25f);
+      float knockbackForce = baseImpulse * (1.0f + attacker.comboCount * 0.1f);
+      CollisionSystem::applyCollisionImpulse(attacker, defender,
+                                             knockbackForce);
       hitRegistered = true;
       break;
     }

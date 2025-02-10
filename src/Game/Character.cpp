@@ -9,7 +9,7 @@
 #include <algorithm>
 
 Character::Character(Animator *anim)
-    : animator(anim), health(100), maxHealth(100), onGround(false),
+    : animator(anim), health(1000), maxHealth(1000), onGround(false),
       isMoving(false), groundFrames(0), inputDirection(0) {}
 
 SDL_Rect Character::getHitboxRect(HitboxType type) const {
@@ -200,9 +200,8 @@ void Character::update(float deltaTime) {
     return;
   }
 
-  // Only handle idle/walk transitions when we're not in any attack phase
-  bool shouldBeIdle = !isMoving || (std::abs(mover.velocity.x) < 1.0f &&
-                                    std::abs(mover.velocity.y) < 1.0f);
+  bool shouldBeIdle = !isMoving || (std::abs(mover.velocity.x) < 2.0f &&
+                                    std::abs(mover.velocity.y) < 2.0f);
 
   if (shouldBeIdle) {
     if (animator->getCurrentAnimationKey() != "Idle") {

@@ -123,14 +123,20 @@ Action RLAgent::selectAction(const State &state) {
   }
 
   Action predictedOppAction = predictOpponentAction(state);
+  // Only force block if the opponent is predicted to attack AND
+  // if we are not already blocking.
   if (predictedOppAction.type == ActionType::Attack &&
-      selectedAction.type != ActionType::Block)
+      selectedAction.type != ActionType::Block &&
+      m_lastAction.type != ActionType::Block) {
     selectedAction = Action::fromType(ActionType::Block);
+  }
 
+  // Also, if our stance is Defensive, force Block if the action is attack-like.
   if (m_currentStance == Stance::Defensive &&
       (selectedAction.type == ActionType::Attack ||
-       selectedAction.type == ActionType::JumpAttack))
+       selectedAction.type == ActionType::JumpAttack)) {
     selectedAction = Action::fromType(ActionType::Block);
+  }
 
   return selectedAction;
 }
@@ -247,11 +253,22 @@ void RLAgent::learn(const Experience &exp) {
 }
 
 void RLAgent::applyAction(const Action &action) {
+  std::string currentAnim = m_character->animator->getCurrentAnimationKey();
+  bool isAttackingOrBlocking =
+      (currentAnim == "Attack" || currentAnim == "Attack 2" ||
+       currentAnim == "Attack 3" || currentAnim == "Block");
+
   const float MOVE_FORCE = 500.0f;
-  if (action.moveLeft)
-    m_character->mover.applyForce(Vector2f(-MOVE_FORCE, 0));
-  if (action.moveRight)
-    m_character->mover.applyForce(Vector2f(MOVE_FORCE, 0));
+  if (!isAttackingOrBlocking) {
+    if (action.moveLeft)
+      m_character->mover.applyForce(Vector2f(-MOVE_FORCE, 0));
+    m_character->isMoving = true;
+    m_character->inputDirection = -1;
+    if (action.moveRight)
+      m_character->mover.applyForce(Vector2f(MOVE_FORCE, 0));
+    m_character->isMoving = true;
+    m_character->inputDirection = 1;
+  }
   if (action.jump && m_character->onGround)
     m_character->jump();
   if (action.attack)
@@ -299,6 +316,8 @@ void RLAgent::updateComboSystem(const Action &action) {
     } else {
       m_comboCount = 0;
     }
+
+    m_character->comboCount = m_comboCount;
   }
 }
 
