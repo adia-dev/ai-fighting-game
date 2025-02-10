@@ -5,8 +5,21 @@
 #include <string>
 
 bool FightSystem::processHit(Character &attacker, Character &defender) {
+  // Get the current animation being played
+  std::string currentAnimationKey = attacker.animator->getCurrentAnimationKey();
+
+  // Create a unique key for this attacker-defender pair
+  auto hitKey = std::make_pair(&attacker, &defender);
+  auto &hitReg = m_hitRegistrations[hitKey];
+
+  // If we already registered a hit for this attack animation, ignore further
+  // collisions
+  if (hitReg.currentAttackAnimation == currentAnimationKey &&
+      hitReg.hitCooldown > 0) {
+    return false;
+  }
+
   const std::vector<Hitbox> &hitboxes = attacker.animator->getCurrentHitboxes();
-  bool hitRegistered = false;
   SDL_Rect defenderHurtbox = defender.getHitboxRect();
   SDL_Rect defenderBlockBox = defender.getHitboxRect(HitboxType::Block);
   SDL_Rect attackerFrameRect = attacker.animator->getCurrentFrameRect();
@@ -30,12 +43,15 @@ bool FightSystem::processHit(Character &attacker, Character &defender) {
 
     // Check for block first
     if (CollisionSystem::checkCollision(hbRect, defenderBlockBox)) {
-      defender.applyDamage(10, true);
+      defender.applyDamage(15, true);
       defender.block();
       defender.lastBlockEffective = true;
       attacker.lastAttackLanded = false;
-      hitRegistered = true;
-      break;
+
+      // Register the hit and start cooldown
+      hitReg.hitCooldown = HIT_COOLDOWN_DURATION;
+      hitReg.currentAttackAnimation = currentAnimationKey;
+      return true;
     }
 
     // Then check for hit
@@ -49,16 +65,31 @@ bool FightSystem::processHit(Character &attacker, Character &defender) {
       attacker.lastAttackLanded = true;
       defender.lastBlockEffective = false;
 
-      // TODO: Make it dynamic based on the attack (should be on the state of
-      // the hitbox)
       float baseImpulse = 500.0f;
-      defender.applyDamage(15 * attacker.comboCount * 1.25f);
+      defender.applyDamage(35 * attacker.comboCount * 1.25f);
       float knockbackForce = baseImpulse * (1.0f + attacker.comboCount * 0.1f);
       CollisionSystem::applyCollisionImpulse(attacker, defender,
                                              knockbackForce);
-      hitRegistered = true;
-      break;
+
+      // Register the hit and start cooldown
+      hitReg.hitCooldown = HIT_COOLDOWN_DURATION;
+      hitReg.currentAttackAnimation = currentAnimationKey;
+      return true;
     }
   }
-  return hitRegistered;
+  return false;
+}
+
+void FightSystem::update(float deltaTime) {
+  // Update all hit registration cooldowns
+  for (auto &pair : m_hitRegistrations) {
+    auto &hitReg = pair.second;
+    if (hitReg.hitCooldown > 0) {
+      hitReg.hitCooldown -= deltaTime;
+      if (hitReg.hitCooldown <= 0) {
+        // Reset the attack animation tracking when cooldown expires
+        hitReg.currentAttackAnimation.clear();
+      }
+    }
+  }
 }

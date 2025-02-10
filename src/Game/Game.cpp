@@ -162,23 +162,19 @@ void Game::run() {
   m_lastCounter = SDL_GetPerformanceCounter();
 
   while (!quit) {
-    SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-      m_imguiContext->processEvent(event);
-
-      if (event.type == SDL_QUIT)
-        quit = true;
-
-      if (SDL_GetWindowFlags(m_window->get()) & SDL_WINDOW_MINIMIZED) {
-        SDL_Delay(10);
-        continue;
+    if (!m_headlessMode) {
+      SDL_Event event;
+      while (SDL_PollEvent(&event)) {
+        m_imguiContext->processEvent(event);
+        if (event.type == SDL_QUIT)
+          quit = true;
       }
-    }
 
-    if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
-      m_showDebugUI = false;
-    } else if (ImGui::IsKeyPressed(ImGuiKey_Tab)) {
-      m_showDebugUI = !m_showDebugUI;
+      if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+        m_showDebugUI = false;
+      } else if (ImGui::IsKeyPressed(ImGuiKey_Tab)) {
+        m_showDebugUI = !m_showDebugUI;
+      }
     }
 
     Uint64 currentCounter = SDL_GetPerformanceCounter();
@@ -186,25 +182,26 @@ void Game::run() {
                   SDL_GetPerformanceFrequency();
     m_lastCounter = currentCounter;
 
-    m_imguiContext->beginFrame();
+    if (!m_headlessMode) {
+      m_imguiContext->beginFrame();
+    }
 
     processInput();
 
-    size_t steps = m_combatSystem->trainingMode() ? 1000
-                   : m_headlessMode               ? 100
-                                                  : 1;
+    size_t steps = m_headlessMode                   ? 1000
+                   : m_combatSystem->trainingMode() ? 100
+                                                    : 1;
+
     for (size_t i = 0; i < steps; ++i) {
       update(m_deltaTime);
     }
-    updateCamera(m_deltaTime);
 
-    render();
-
-    renderDebugUI();
-
-    m_imguiContext->endFrame();
-
-    SDL_Delay(16);
+    if (!m_headlessMode) {
+      updateCamera(m_deltaTime);
+      render();
+      renderDebugUI();
+      m_imguiContext->endFrame();
+    }
   }
 #endif
 }
@@ -234,6 +231,7 @@ void Game::update(float deltaTime) {
   m_combatSystem->update(deltaTime, *m_player, *m_enemy);
 
   if (m_combatSystem->isRoundActive()) {
+    m_fightSystem.update(deltaTime);
 
     if (m_playerControl.enabled) {
       switch (m_playerControl.mode) {
@@ -357,6 +355,17 @@ void Game::updateCamera(float deltaTime) {
 }
 
 void Game::render() {
+  if (m_headlessMode)
+    return;
+
+  if (m_combatSystem->trainingMode()) {
+    m_trainingRenderTimer += m_deltaTime;
+    if (m_trainingRenderTimer < TRAINING_RENDER_INTERVAL) {
+      return;
+    }
+    m_trainingRenderTimer = 0.0f;
+  }
+
   Vector2f originalPos = m_camera.position;
   m_camera.position += m_screenShake.offset;
 
@@ -425,6 +434,8 @@ void Game::render() {
   }
 
   m_camera.position = originalPos;
+
+  renderTrainingOverlay();
 }
 
 void Game::renderBackground() {
@@ -528,7 +539,7 @@ void Game::renderDebugUI() {
     renderPerformanceWindow();
   }
   if (m_showConfigEditor) {
-    ConfigEditor::render(m_config, m_showConfigEditor);
+    ConfigEditor::render(*this, m_config, m_showConfigEditor);
   }
 }
 
@@ -840,4 +851,25 @@ void Game::triggerSlowMotion(float duration, float timeScale) {
   m_slowMotion.currentTime = 0.0f;
   m_slowMotion.active = true;
   m_timeScale = timeScale;
+}
+void Game::renderTrainingOverlay() {
+  if (!m_combatSystem->trainingMode())
+    return;
+
+  SDL_SetRenderDrawBlendMode(m_renderer->get(), SDL_BLENDMODE_BLEND);
+  SDL_SetRenderDrawColor(m_renderer->get(), 0, 0, 0, 230);
+  SDL_Rect overlay = {0, 0, m_config.windowWidth, m_config.windowHeight};
+  SDL_RenderFillRect(m_renderer->get(), &overlay);
+
+  SDL_Color textColor = {255, 255, 255, 255};
+  std::string trainingInfo =
+      "Training Mode - Episode: " +
+      std::to_string(m_player_agent->getEpisodeCount()) +
+      "\nWin Rate: " + std::to_string(m_player_agent->getWinRate() * 100.0f) +
+      "%";
+
+  drawCenteredText(m_renderer->get(), trainingInfo, m_config.windowWidth / 2,
+                   m_config.windowHeight / 2, textColor, 1.5f);
+
+  SDL_SetRenderDrawBlendMode(m_renderer->get(), SDL_BLENDMODE_NONE);
 }

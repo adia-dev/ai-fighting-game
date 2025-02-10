@@ -1,11 +1,12 @@
 // ConfigEditor.hpp
 #pragma once
 #include "Core/Config.hpp"
+#include "Game/Game.hpp"
 #include "imgui.h"
 
 class ConfigEditor {
 public:
-  static void render(Config &config, bool &show) {
+  static void render(Game &game, Config &config, bool &show) {
     if (!show)
       return;
 
@@ -164,6 +165,16 @@ public:
                          0.01f, 0.01f, 1.0f, "%.2f");
 
         ImGui::EndTabItem();
+      }
+
+      if (ImGui::CollapsingHeader("Training Settings")) {
+        bool headless = game.isHeadlessMode();
+        if (ImGui::Checkbox("Headless Mode", &headless)) {
+          game.setHeadlessMode(headless);
+        }
+        if (ImGui::IsItemHovered()) {
+          ImGui::SetTooltip("Run without rendering for maximum training speed");
+        }
       }
 
       ImGui::EndTabBar();

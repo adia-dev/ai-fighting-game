@@ -8,6 +8,7 @@
 #include "Game/CombatSystem.hpp"
 #include "Game/FightSystem.hpp"
 #include "Rendering/Renderer.hpp"
+#include "Rendering/Text.hpp"
 #include "Rendering/VFX.hpp"
 #include "Rendering/Window.hpp"
 #include "Resources/ResourceManager.hpp"
@@ -19,6 +20,15 @@ class Game {
 public:
   Game();
   void run();
+
+  void setHeadlessMode(bool enabled) {
+    m_headlessMode = enabled;
+    if (enabled) {
+      m_combatSystem->setTrainingMode(true);
+    }
+  }
+
+  bool isHeadlessMode() const { return m_headlessMode; }
 
 private:
   void single_iter(void *arg);
@@ -46,6 +56,7 @@ private:
   void renderPerformanceWindow();
   void renderAIDebugWindow();
   void renderConfigEditor();
+  void renderTrainingOverlay();
 
   void updateScreenEffects(float deltaTime);
   void triggerScreenShake(float duration, float intensity);
@@ -88,12 +99,15 @@ private:
 
   bool m_headlessMode = false;
   bool m_showDebugWindow = true;
-  bool m_showPerformance = false;
+  bool m_showPerformance = true;
   bool m_showAIDebug = true;
   bool m_showDebugUI = false;
   bool m_showGameView = true;
-  bool m_showConfigEditor = false;
+  bool m_showConfigEditor = true;
   bool m_paused = false;
+
+  float m_trainingRenderTimer = 0.0f;
+  const float TRAINING_RENDER_INTERVAL = 0.1f; // Rend
 
   FightSystem m_fightSystem;
   Camera m_camera;

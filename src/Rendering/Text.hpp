@@ -5,8 +5,8 @@
 #include <string>
 
 inline static void drawText(SDL_Renderer *renderer, const std::string &text,
-                            int x, int y, SDL_Color color) {
-  TTF_Font *font = TTF_OpenFont(R::font("seguiemj.ttf").c_str(), 14);
+                            int x, int y, SDL_Color color, int fontSize = 14) {
+  TTF_Font *font = TTF_OpenFont(R::font("seguiemj.ttf").c_str(), fontSize);
   if (!font)
     return;
   SDL_Surface *surface =
@@ -30,7 +30,8 @@ inline static void drawCenteredText(SDL_Renderer *renderer,
                                 static_cast<int>(24 * scale));
   if (!font)
     return;
-  SDL_Surface *surface = TTF_RenderText_Blended(font, text.c_str(), color);
+  SDL_Surface *surface =
+      TTF_RenderText_Blended_Wrapped(font, text.c_str(), color, 1000);
   if (!surface) {
     TTF_CloseFont(font);
     return;
