@@ -508,6 +508,7 @@ void Game::renderPerformanceWindow() {
   ImGui::End();
 }
 
+// src/Game/Game.cpp (modified renderAIDebugWindow() function)
 void Game::renderAIDebugWindow() {
   if (!m_showAIDebug)
     return;
@@ -515,7 +516,7 @@ void Game::renderAIDebugWindow() {
   ImGui::Begin("AI Control & Debug", &m_showAIDebug,
                ImGuiWindowFlags_NoCollapse);
 
-  // Global Controls
+  // Global Controls (existing code)
   if (ImGui::CollapsingHeader("Global Controls",
                               ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::Indent();
@@ -551,7 +552,8 @@ void Game::renderAIDebugWindow() {
     ImGui::Unindent();
   }
 
-  // Character Controls
+  // Character Controls (existing lambda used to render each character's
+  // controls)
   auto renderCharacterControls =
       [this](const char *charId, CharacterControl &control, RLAgent *agent) {
         ImGui::PushID(charId); // Use unique ID for each character section
@@ -672,6 +674,64 @@ void Game::renderAIDebugWindow() {
   renderCharacterControls("player", m_playerControl, m_player_agent.get());
   ImGui::Separator();
   renderCharacterControls("enemy", m_enemyControl, m_enemy_agent.get());
+
+  // New section: Battle Style Control for the player agent.
+  if (m_player_agent) {
+    ImGui::Separator();
+    ImGui::Text("Battle Style Control");
+
+    // Create an enum-like combo for selecting battle style.
+    // 0: Aggressive, 1: Balanced, 2: Defensive.
+    static int battleStyleInt = 1; // Default to Balanced.
+    if (ImGui::Combo("Battle Style", &battleStyleInt,
+                     "Aggressive\0Balanced\0Defensive\0")) {
+      // Update the agent's battle style parameters.
+      BattleStyle bs;
+      if (battleStyleInt == 0) { // Aggressive
+        bs.timePenalty = 0.008f;
+        bs.hpRatioWeight = 1.0f;
+        bs.distancePenalty = 0.002f;
+      } else if (battleStyleInt == 1) { // Balanced
+        bs.timePenalty = 0.004f;
+        bs.hpRatioWeight = 1.0f;
+        bs.distancePenalty = 0.0002f;
+      } else if (battleStyleInt == 2) { // Defensive
+        bs.timePenalty = 0.0f;
+        bs.hpRatioWeight = 1.2f;
+        bs.distancePenalty = 0.0f;
+      }
+      m_player_agent->setBattleStyle(bs);
+    }
+
+    // Draw a horizontal bar showing the style continuum.
+    ImDrawList *draw_list = ImGui::GetWindowDrawList();
+    ImVec2 pos = ImGui::GetCursorScreenPos();
+    float width = 300.0f;
+    float height = 20.0f;
+    // Draw the bar background.
+    draw_list->AddRectFilled(pos, ImVec2(pos.x + width, pos.y + height),
+                             IM_COL32(100, 100, 100, 255));
+    // Draw labels for the endpoints and middle.
+    draw_list->AddText(ImVec2(pos.x, pos.y - 15), IM_COL32(255, 0, 0, 255),
+                       "Aggressive");
+    draw_list->AddText(ImVec2(pos.x + width / 2 - 30, pos.y - 15),
+                       IM_COL32(255, 255, 0, 255), "Balanced");
+    draw_list->AddText(ImVec2(pos.x + width - 80, pos.y - 15),
+                       IM_COL32(0, 255, 0, 255), "Defensive");
+    // Determine pointer position based on the current selection.
+    float pointerX = pos.x;
+    if (battleStyleInt == 0)
+      pointerX = pos.x;
+    else if (battleStyleInt == 1)
+      pointerX = pos.x + width / 2;
+    else if (battleStyleInt == 2)
+      pointerX = pos.x + width;
+    // Draw a vertical pointer line.
+    draw_list->AddLine(ImVec2(pointerX, pos.y),
+                       ImVec2(pointerX, pos.y + height),
+                       IM_COL32(0, 0, 255, 255), 3.0f);
+    ImGui::Dummy(ImVec2(width, height + 10));
+  }
 
   ImGui::End();
 }

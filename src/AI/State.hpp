@@ -1,7 +1,7 @@
 #pragma once
 
 enum class ActionType {
-  None,
+  Noop,
   MoveLeft,
   MoveRight,
   Jump,
@@ -14,8 +14,8 @@ enum class ActionType {
 
 inline const char *actionTypeToString(ActionType type) {
   switch (type) {
-  case ActionType::None:
-    return "None";
+  case ActionType::Noop:
+    return "No-op";
   case ActionType::MoveLeft:
     return "MoveLeft";
   case ActionType::MoveRight:
@@ -80,4 +80,12 @@ struct Experience {
   Action action;
   float reward;
   State nextState;
+};
+
+struct BattleStyle {
+  float timePenalty;     // Penalty per time step (e.g., 0.004 for balanced)
+  float hpRatioWeight;   // Multiplier for health margin reward (e.g., 1.0 for
+                         // balanced)
+  float distancePenalty; // Penalty per unit deviation from optimal distance
+                         // (e.g., 0.0002 for balanced)
 };

@@ -4,7 +4,7 @@
 
 // Default values.
 static constexpr float DEFAULT_EPISODE_DURATION = 60.0f;
-static constexpr int TARGET_UPDATE_FREQUENCY = 1000; // steps
+static constexpr int TARGET_UPDATE_FREQUENCY = 1000;
 
 RLAgent::RLAgent(Character *character)
     : m_character(character), m_totalReward(0), m_episodeTime(0),
@@ -12,12 +12,16 @@ RLAgent::RLAgent(Character *character)
       m_lastHealth(100), m_currentActionDuration(0), m_actionHoldDuration(0.2f),
       m_consecutiveWhiffs(0), m_epsilon(0.3f), m_learningRate(0.001f),
       m_discountFactor(0.95f), m_episodeCount(0), updateCounter(0),
-      m_gen(m_rd()), m_dist(0.0f, 1.0f) {
+      m_gen(m_rd()), m_dist(0.0f, 1.0f), m_moveHoldCounter(0) {
   // Our state vector now has 6 base features + 4 radar features = 10.
   state_dim = 10;
   num_actions = 9; // 8 original actions + Block action.
   onlineDQN = std::make_unique<NeuralNetwork>(state_dim, 64, num_actions);
   targetDQN = std::make_unique<NeuralNetwork>(state_dim, 64, num_actions);
+  // Set default battle style to "balanced":
+  m_battleStyle.timePenalty = 0.004f;      // Balanced time penalty.
+  m_battleStyle.hpRatioWeight = 1.0f;      // Balanced HP ratio weight.
+  m_battleStyle.distancePenalty = 0.0002f; // Balanced distance penalty.
   reset();
 }
 
@@ -29,13 +33,11 @@ std::vector<float> RLAgent::stateToVector(const State &state) {
   v.push_back(state.myHealth);
   v.push_back(state.opponentHealth);
   v.push_back(state.timeSinceLastAction);
-  // Append radar features (assumed to be 4 values).
   for (int i = 0; i < 4; i++)
     v.push_back(state.radar[i]);
   return v;
 }
 
-// In src/AI/RLAgent.cpp:
 State RLAgent::getCurrentState(const Character &opponent) {
   State state;
   Vector2f toOpponent = opponent.mover.position - m_character->mover.position;
@@ -48,7 +50,7 @@ State RLAgent::getCurrentState(const Character &opponent) {
       static_cast<float>(opponent.health) / opponent.maxHealth;
   state.timeSinceLastAction = m_timeSinceLastAction;
 
-  // Compute four simple radar features (for instance, by quadrants).
+  // Compute four radar features (by quadrants).
   state.radar[0] =
       (toOpponent.x >= 0 && toOpponent.y >= 0) ? toOpponent.length() : 0;
   state.radar[1] =
@@ -80,48 +82,52 @@ Action RLAgent::selectAction(const State &state) {
 float RLAgent::calculateReward(const State &state, const Action &action) {
   float reward = 0.0f;
 
-  // (1) Health margin: reward if you have higher health than your opponent.
+  // (1) Health margin reward with battle style multiplier.
   float healthMargin = state.myHealth - state.opponentHealth;
-  reward += healthMargin * 10.0f;
+  reward += healthMargin * 10.0f * m_battleStyle.hpRatioWeight;
 
-  // (2) If an attack was performed, reward if it landed, or penalize otherwise.
+  // (2) Reward/penalty for attack actions.
   if (action.attack) {
-    // If our character’s last attack landed (flag set by FightSystem)
-    if (m_character->lastAttackLanded) {
-      // Bonus reward proportional to damage (here, assume 10 damage per hit)
-      reward += 20.0f;
-    } else {
-      // Penalty for wasted attack
-      reward -= 5.0f;
-    }
+    reward += m_character->lastAttackLanded ? 20.0f : -5.0f;
   }
 
-  // (3) If block was used, reward it if effective (i.e. blocking an incoming
-  // attack)
+  // (3) Reward/penalty for block actions.
   if (action.block) {
-    if (m_character->lastBlockEffective) {
-      reward += 10.0f;
-    } else {
-      reward -= 3.0f;
-    }
+    reward += m_character->lastBlockEffective ? 10.0f : -3.0f;
   }
 
-  // (4) Distance shaping: reward staying close to the optimal range.
+  // (4) Distance shaping using battle style distance penalty.
   float optimalDistance = 150.0f;
-  reward -= std::abs(state.distanceToOpponent - optimalDistance) * 0.05f;
+  reward -= std::abs(state.distanceToOpponent - optimalDistance) *
+            m_battleStyle.distancePenalty;
 
-  // (5) Time penalty: penalize for inactivity to encourage fast, decisive
-  // actions.
-  reward -= state.timeSinceLastAction * 0.1f;
+  // (5) Apply time penalty from battle style.
+  reward -= m_battleStyle.timePenalty;
 
-  // (6) (Optional) Penalize consecutive missed actions (e.g. excessive whiffs).
+  // (6) Penalize consecutive missed attacks.
   if (action.attack && !m_character->lastAttackLanded)
     reward -= m_consecutiveWhiffs * 2.0f;
+
+  // (7) Additional penalty based on time since last action.
+  reward -= state.timeSinceLastAction * 0.1f;
 
   return reward;
 }
 
+bool RLAgent::isPassiveNoOp(const Experience &exp) {
+  // Define a passive "no-op" as an action with type None and negligible state
+  // change.
+  float hpChange = std::abs(exp.nextState.myHealth - exp.state.myHealth);
+  float distChange =
+      std::abs(exp.nextState.distanceToOpponent - exp.state.distanceToOpponent);
+  const float threshold = 0.01f;
+  return (exp.action.type == ActionType::Noop && hpChange < threshold &&
+          distChange < threshold);
+}
+
 void RLAgent::updateReplayBuffer(const Experience &exp) {
+  if (isPassiveNoOp(exp))
+    return; // Skip passive "no-op" experiences.
   if (replayBuffer.size() >= MAX_REPLAY_BUFFER)
     replayBuffer.pop_front();
   replayBuffer.push_back(exp);
@@ -147,7 +153,7 @@ void RLAgent::sampleAndTrain() {
   }
   updateCounter += BATCH_SIZE;
   if (updateCounter >= TARGET_UPDATE_FREQUENCY) {
-    // In a proper implementation, copy parameters.
+    // TODO: Hard copy parameters (could be replaced with soft update later).
     targetDQN = std::make_unique<NeuralNetwork>(*onlineDQN);
     updateCounter = 0;
   }
@@ -169,24 +175,32 @@ void RLAgent::applyAction(const Action &action) {
   if (action.attack)
     m_character->attack();
   if (action.block)
-    m_character->block(); // You must implement Character::block()
+    m_character->block();
 }
 
 void RLAgent::update(float deltaTime, const Character &opponent) {
+  // NEW: If in a "maintaining move" phase, do not select a new action.
+  if (m_moveHoldCounter > 0) {
+    m_moveHoldCounter--;
+    applyAction(m_lastAction);
+    return;
+  }
+
   m_episodeTime += deltaTime;
   m_timeSinceLastAction += deltaTime;
   m_currentActionDuration += deltaTime;
 
   State newState = getCurrentState(opponent);
-  // Only select a new action after the hold duration expires.
+  // Only select a new action if the current action's hold duration has expired.
   if (m_currentActionDuration >= m_actionHoldDuration) {
     Action newAction = selectAction(newState);
 
-    // If the new action is of the same movement type as the last one,
-    // extend the hold duration (smoother movement).
+    //  If the new action is a move action and is the same as the last, hold it.
     if ((newAction.moveLeft && m_lastAction.moveLeft) ||
         (newAction.moveRight && m_lastAction.moveRight)) {
-      m_actionHoldDuration = 0.5f; // longer hold for movement
+      m_moveHoldCounter =
+          MOVE_HOLD_TICKS - 1;     // maintain the move for additional ticks
+      m_actionHoldDuration = 0.5f; // longer hold for smoother movement
     } else {
       m_actionHoldDuration = 0.3f;
     }
@@ -218,8 +232,9 @@ void RLAgent::reset() {
   m_totalReward = 0;
   m_episodeTime = 0;
   m_currentState = getCurrentState(*m_character);
-  m_lastAction = Action::fromType(ActionType::None);
+  m_lastAction = Action::fromType(ActionType::Noop);
   replayBuffer.clear();
+  m_moveHoldCounter = 0;
 }
 
 void RLAgent::startNewEpoch() {
@@ -227,4 +242,11 @@ void RLAgent::startNewEpoch() {
   m_character->health = m_character->maxHealth;
   reset();
   Logger::info("Starting new epoch, reward reset.");
+}
+
+void RLAgent::setParameters(float epsilon, float learningRate,
+                            float discountFactor) {
+  m_epsilon = epsilon;
+  m_learningRate = learningRate;
+  m_discountFactor = discountFactor;
 }

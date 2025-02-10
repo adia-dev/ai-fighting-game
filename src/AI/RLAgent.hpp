@@ -21,11 +21,7 @@ public:
   float getEpsilon() const { return m_epsilon; }
   float getLearningRate() const { return m_learningRate; }
   float getDiscountFactor() const { return m_discountFactor; }
-  void setParameters(float epsilon, float learningRate, float discountFactor) {
-    m_epsilon = epsilon;
-    m_learningRate = learningRate;
-    m_discountFactor = discountFactor;
-  }
+  void setParameters(float epsilon, float learningRate, float discountFactor);
 
   // State access
   const State &getCurrentState() const { return m_currentState; }
@@ -36,6 +32,9 @@ public:
     return m_wins / (float)std::max(1, m_episodeCount);
   }
 
+  // Set the battle style for reward shaping.
+  void setBattleStyle(const BattleStyle &style) { m_battleStyle = style; }
+
 private:
   std::vector<float> stateToVector(const State &state);
   State getCurrentState(const Character &opponent);
@@ -45,6 +44,7 @@ private:
   void applyAction(const Action &action);
   void updateReplayBuffer(const Experience &exp);
   void sampleAndTrain();
+  bool isPassiveNoOp(const Experience &exp);
 
   Character *m_character;
   State m_currentState;
@@ -83,4 +83,8 @@ private:
   std::random_device m_rd;
   std::mt19937 m_gen;
   std::uniform_real_distribution<float> m_dist;
+
+  int m_moveHoldCounter;
+  BattleStyle m_battleStyle;
+  static const int MOVE_HOLD_TICKS = 10;
 };
