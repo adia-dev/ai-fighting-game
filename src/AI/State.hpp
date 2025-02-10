@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 enum class ActionType {
   Noop,
   MoveLeft,
@@ -37,18 +38,28 @@ inline const char *actionTypeToString(ActionType type) {
   }
 }
 
+enum class Stance { Neutral, Aggressive, Defensive };
+
 struct State {
-  // Original features.
   float distanceToOpponent;
   float relativePositionX;
   float relativePositionY;
   float myHealth;
   float opponentHealth;
   float timeSinceLastAction;
-  // New radar features (for example, four values representing quadrants).
   float radar[4];
-  // (Optionally, you could add history features here, for example a fixed
-  // window of previous action indices.)
+
+  float opponentVelocityX; // Opponent’s horizontal velocity
+  float opponentVelocityY; // Opponent’s vertical velocity
+  bool isCornered;         // True if the agent is near the stage edge
+  std::array<ActionType, 3> lastActions; // Last 3 actions taken by the AI
+  std::array<ActionType, 3> opponentLastActions; // Last 3 opponent actions
+
+  // A prediction of the opponent distance in near-future
+  float predictedDistance;
+
+  // Current stance (for tactical adjustments)
+  Stance currentStance;
 };
 
 struct Action {

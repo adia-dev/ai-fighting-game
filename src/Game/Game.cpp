@@ -1,4 +1,5 @@
 #include "Game.hpp"
+#include "Core/DebugDraw.hpp"
 #include "Core/GuiContext.hpp"
 #include "Core/Input.hpp"
 #include "Core/Logger.hpp"
@@ -515,6 +516,8 @@ void Game::renderAIDebugWindow() {
 
   ImGui::Begin("AI Control & Debug", &m_showAIDebug,
                ImGuiWindowFlags_NoCollapse);
+
+  DebugDraw::DrawAIState(*m_player_agent);
 
   // Global Controls (existing code)
   if (ImGui::CollapsingHeader("Global Controls",
