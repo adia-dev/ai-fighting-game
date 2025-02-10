@@ -56,6 +56,11 @@ std::vector<float> RLAgent::stateToVector(const State &state) {
     v.push_back(static_cast<float>(action));
   v.push_back(state.predictedDistance);
   v.push_back(static_cast<float>(state.currentStance));
+
+  // NEW: Add stamina information
+  v.push_back(state.myStamina);
+  v.push_back(state.myMaxStamina);
+
   return v;
 }
 
@@ -71,6 +76,7 @@ State RLAgent::getCurrentState(const Character &opponent) {
       static_cast<float>(opponent.health) / opponent.maxHealth;
   state.timeSinceLastAction = m_timeSinceLastAction;
 
+  // Fill radar features (as before)
   state.radar[0] =
       (toOpponent.x >= 0 && toOpponent.y >= 0) ? toOpponent.length() : 0;
   state.radar[1] =
@@ -86,6 +92,7 @@ State RLAgent::getCurrentState(const Character &opponent) {
   float posX = m_character->mover.position.x;
   state.isCornered = (posX < 150 || posX > 850);
 
+  // Copy action histories as before
   std::array<ActionType, 3> selfHist = {ActionType::Noop, ActionType::Noop,
                                         ActionType::Noop};
   std::array<ActionType, 3> oppHist = {ActionType::Noop, ActionType::Noop,
@@ -106,6 +113,11 @@ State RLAgent::getCurrentState(const Character &opponent) {
       (predictedPos - m_character->mover.position).length();
 
   state.currentStance = m_currentStance;
+
+  // NEW: Set stamina values (normalized)
+  state.myStamina = m_character->stamina / m_character->maxStamina;
+  state.myMaxStamina = 1.0f; // (normalized maximum can be always 1.0)
+
   return state;
 }
 
@@ -184,6 +196,10 @@ float RLAgent::calculateReward(const State &state, const Action &action) {
     }
     if (same)
       reward -= 7.0f;
+  }
+
+  if (m_character->stamina <= 0.0f) {
+    reward -= 50.0f;
   }
 
   reward -= m_battleStyle.timePenalty;

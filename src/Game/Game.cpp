@@ -184,7 +184,10 @@ void Game::run() {
 
     processInput();
 
-    for (size_t i = 0; i < (m_headlessMode ? 100 : 1); ++i) {
+    size_t steps = m_combatSystem.trainingMode() ? 1000
+                   : m_headlessMode              ? 100
+                                                 : 1;
+    for (size_t i = 0; i < steps; ++i) {
       update(m_deltaTime);
     }
     updateCamera(m_deltaTime);
@@ -363,33 +366,30 @@ void Game::render() {
   SDL_RenderDrawLine(m_renderer->get(), 0, m_config.groundLevel,
                      m_config.windowWidth, m_config.groundLevel);
 
-  auto renderCharacterWithCamera = [&](Character &ch) {
-    int renderX =
-        static_cast<int>(offset.x + ch.mover.position.x * m_camera.scale);
-    int renderY =
-        static_cast<int>(offset.y + ch.mover.position.y * m_camera.scale);
-
-    ch.animator->render(m_renderer->get(), renderX, renderY, m_camera.scale);
-
-    SDL_Rect collRect = ch.getHitboxRect();
-    collRect.x = static_cast<int>(offset.x + collRect.x * m_camera.scale);
-    collRect.y = static_cast<int>(offset.y + collRect.y * m_camera.scale);
-    SDL_Rect healthBar = {collRect.x, collRect.y - 10, collRect.w, 5};
-    float ratio = static_cast<float>(ch.health) / ch.maxHealth;
-    SDL_Rect healthFill = {healthBar.x, healthBar.y,
-                           static_cast<int>(healthBar.w * ratio), healthBar.h};
-
-    SDL_SetRenderDrawColor(m_renderer->get(), 255, 0, 0, 255);
-    SDL_RenderFillRect(m_renderer->get(), &healthBar);
-    SDL_SetRenderDrawColor(m_renderer->get(), 0, 255, 0, 255);
-    SDL_RenderFillRect(m_renderer->get(), &healthFill);
-    SDL_SetRenderDrawColor(m_renderer->get(), 0, 0, 0, 255);
-    SDL_RenderDrawRect(m_renderer->get(), &healthBar);
-  };
-
-  renderCharacterWithCamera(*m_player);
-  renderCharacterWithCamera(*m_enemy);
+  m_enemy->renderWithCamera(m_renderer->get(), m_camera, m_config);
+  m_player->renderWithCamera(m_renderer->get(), m_camera, m_config);
   m_combatSystem.render(m_renderer->get());
+
+  if (m_roundEnded) {
+    // Increase the round end timer.
+    m_roundEndTimer += m_deltaTime;
+    // Slowly increase the zoom factor (for dramatic effect).
+    m_zoomEffect = 1.0f + m_roundEndTimer * 0.5f;
+
+    // Set a dramatic slow frame rate or use a slow update for the zoom.
+    // For example, render text with a large font size scaled by m_zoomEffect.
+    SDL_Color textColor = {255, 255, 255, 255};
+
+    // Assume you have a helper function to render centered text:
+    drawCenteredText(m_renderer->get(), m_winnerText, m_config.windowWidth / 2,
+                     m_config.windowHeight / 2, textColor, m_zoomEffect);
+
+    // If enough time has passed (say, 3 seconds), then start a new round.
+    if (m_roundEndTimer >= 3.0f) {
+      m_combatSystem.startNewRound(*m_player, *m_enemy);
+      m_roundEnded = false;
+    }
+  }
 }
 
 void Game::renderDebugUI() {
@@ -517,6 +517,8 @@ void Game::renderAIDebugWindow() {
     ImGui::Indent();
 
     if (ImGui::Checkbox("Pause Game", &m_paused)) {
+    }
+    if (ImGui::Checkbox("Training Mode", &m_combatSystem.trainingMode())) {
     }
     if (ImGui::IsItemHovered())
       ImGui::SetTooltip("Toggle game pause. When paused, simulation stops.");
@@ -739,4 +741,10 @@ void Game::updateCharacterControl(CharacterControl &control, RLAgent *agent,
 
     break;
   }
+}
+void Game::setRoundEnd(const std::string &winnerText) {
+  m_roundEnded = true;
+  m_winnerText = winnerText;
+  m_roundEndTimer = 0.0f;
+  m_zoomEffect = 1.0f;
 }

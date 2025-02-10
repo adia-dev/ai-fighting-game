@@ -60,6 +60,12 @@ struct State {
 
   // Current stance (for tactical adjustments)
   Stance currentStance;
+
+  // New: normalized stamina (0.0 - 1.0) and max stamina (could be 1.0 if
+  // normalized)
+  float myStamina; // e.g., current stamina normalized
+  float
+      myMaxStamina; // e.g., maximum stamina (could be always 1.0 if normalized)
 };
 
 struct Action {

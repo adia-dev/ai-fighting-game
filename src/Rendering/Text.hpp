@@ -19,3 +19,25 @@ inline static void drawText(SDL_Renderer *renderer, const std::string &text,
   SDL_DestroyTexture(texture);
   TTF_CloseFont(font);
 }
+
+inline static void drawCenteredText(SDL_Renderer *renderer,
+                                    const std::string &text, int centerX,
+                                    int centerY, SDL_Color color, float scale) {
+  TTF_Font *font = TTF_OpenFont(R::font("seguiemj.ttf").c_str(),
+                                static_cast<int>(24 * scale));
+  if (!font)
+    return;
+  SDL_Surface *surface = TTF_RenderText_Blended(font, text.c_str(), color);
+  if (!surface) {
+    TTF_CloseFont(font);
+    return;
+  }
+  SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+  int w, h;
+  SDL_QueryTexture(texture, nullptr, nullptr, &w, &h);
+  SDL_Rect dst = {centerX - w / 2, centerY - h / 2, w, h};
+  SDL_RenderCopy(renderer, texture, nullptr, &dst);
+  SDL_FreeSurface(surface);
+  SDL_DestroyTexture(texture);
+  TTF_CloseFont(font);
+}

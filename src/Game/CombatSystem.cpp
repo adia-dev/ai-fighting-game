@@ -14,23 +14,23 @@ void CombatSystem::update(float deltaTime, Character &player,
   m_roundTime -= deltaTime * timeMultiplier;
 
   // Additional penalties in training mode
-  if (m_trainingMode) {
-    // Penalize stalling by reducing the time more quickly if no damage is
-    // dealt
-    if (m_timeSinceLastDamage > 5.0f) {
-      m_roundTime -= deltaTime; // Additional time penalty
-    }
-
-    // Track damage dealt/received for penalties
-    bool damageDealt = (player.health != m_lastPlayerHealth ||
-                        enemy.health != m_lastEnemyHealth);
-
-    if (damageDealt) {
-      m_timeSinceLastDamage = 0.0f;
-    } else {
-      m_timeSinceLastDamage += deltaTime * timeMultiplier;
-    }
-  }
+  // if (m_trainingMode) {
+  //   // Penalize stalling by reducing the time more quickly if no damage is
+  //   // dealt
+  //   if (m_timeSinceLastDamage > 5.0f) {
+  //     m_roundTime -= deltaTime; // Additional time penalty
+  //   }
+  //
+  //   // Track damage dealt/received for penalties
+  //   bool damageDealt = (player.health != m_lastPlayerHealth ||
+  //                       enemy.health != m_lastEnemyHealth);
+  //
+  //   if (damageDealt) {
+  //     m_timeSinceLastDamage = 0.0f;
+  //   } else {
+  //     m_timeSinceLastDamage += deltaTime * timeMultiplier;
+  //   }
+  // }
 
   // End round conditions
   if (m_roundTime <= 0 || player.health <= 0 || enemy.health <= 0) {
@@ -124,4 +124,3 @@ void CombatSystem::setTrainingMode(bool enabled) {
   m_trainingMode = enabled;
   m_roundTime = enabled ? TRAINING_ROUND_DURATION : NORMAL_ROUND_DURATION;
 }
-

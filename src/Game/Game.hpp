@@ -43,6 +43,8 @@ private:
   void renderPerformanceWindow();
   void renderAIDebugWindow();
 
+  void setRoundEnd(const std::string &winnerText);
+
   // Core configuration.
   Config m_config;
 
@@ -66,6 +68,11 @@ private:
 
   float m_deltaTime = 0.0f;
   float m_timeScale = 1.0f;
+
+  bool m_roundEnded = false;
+  std::string m_winnerText;
+  float m_roundEndTimer = 0.0f;
+  float m_zoomEffect = 1.0f;
 
   Uint64 m_lastCounter = 0.0f;
 

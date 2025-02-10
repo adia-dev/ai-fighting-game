@@ -20,6 +20,11 @@ struct Vector2f {
     y += other.y;
     return *this;
   }
+  Vector2f &operator*=(float scalar) {
+    x *= scalar;
+    y *= scalar;
+    return *this;
+  }
   Vector2f &operator-=(const Vector2f &other) {
     x -= other.x;
     y -= other.y;

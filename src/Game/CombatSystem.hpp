@@ -14,6 +14,7 @@ public:
 
   void startNewRound(Character &player, Character &enemy);
   void setTrainingMode(bool enabled);
+  bool &trainingMode() { return m_trainingMode; }
 
   void render(SDL_Renderer *renderer);
 

@@ -1,8 +1,10 @@
 #pragma once
 #include "CharacterState.hpp"
+#include "Core/Config.hpp"
 #include "Data/Animation.hpp"
 #include "Game/Mover.hpp"
 #include "Rendering/Animator.hpp"
+#include "Rendering/Camera.hpp"
 #include <SDL.h>
 
 // TODO: Use constants from Config
@@ -27,6 +29,8 @@ public:
   // Last horizontal input: -1 for left, +1 for right, 0 for none.
   int inputDirection;
   int comboCount = 0;
+  float stamina;
+  float maxStamina;
 
   // State
   CharacterState state;
@@ -40,6 +44,8 @@ public:
   void update(float deltaTime);
 
   void render(SDL_Renderer *renderer, float cameraScale = 1.0f);
+  void renderWithCamera(SDL_Renderer *renderer, const Camera &camera,
+                        const Config &config);
 
   void jump();
 
@@ -50,6 +56,8 @@ public:
   void updateFacing(const Character &target);
 
   void attack();
+
+  void dash();
 
   void block();
 };

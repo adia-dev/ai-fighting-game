@@ -52,6 +52,11 @@ public:
 
   std::string getCurrentAnimationKey() const;
 
+  void setFrameIndex(int index) {
+    m_currentFrameIndex = index;
+    m_timer = 0.0f;
+  }
+
 private:
   SDL_Texture *m_texture;
   std::map<std::string, Animation> m_animations;

@@ -10,14 +10,14 @@
 
 Character::Character(Animator *anim)
     : animator(anim), health(1000), maxHealth(1000), onGround(false),
-      isMoving(false), groundFrames(0), inputDirection(0) {}
+      isMoving(false), groundFrames(0), inputDirection(0), stamina(100.0f),
+      maxStamina(500.0f) {}
 
 SDL_Rect Character::getHitboxRect(HitboxType type) const {
   const auto &hitboxes = animator->getCurrentHitboxes();
   SDL_Rect collisionRect;
   bool foundCollisionBox = false;
 
-  // Get the current frame rect to use its width as reference
   SDL_Rect frameRect = animator->getCurrentFrameRect();
 
   for (const auto &hb : hitboxes) {
@@ -26,8 +26,7 @@ SDL_Rect Character::getHitboxRect(HitboxType type) const {
 
     SDL_Rect hbRect;
     if (animator->getFlip()) {
-      // When flipped, mirror the hitbox's x coordinate relative to the frame
-      // width
+
       hbRect.x = frameRect.w - (hb.x + hb.w);
     } else {
       hbRect.x = hb.x;
@@ -40,7 +39,7 @@ SDL_Rect Character::getHitboxRect(HitboxType type) const {
       collisionRect = hbRect;
       foundCollisionBox = true;
     } else {
-      // Combine multiple hitboxes into one bounding box
+
       int x1 = std::min(collisionRect.x, hbRect.x);
       int y1 = std::min(collisionRect.y, hbRect.y);
       int x2 = std::max(collisionRect.x + collisionRect.w, hbRect.x + hbRect.w);
@@ -53,12 +52,11 @@ SDL_Rect Character::getHitboxRect(HitboxType type) const {
   }
 
   if (!foundCollisionBox) {
-    // If no hitbox found, use a default small box in the center
+
     collisionRect = {frameRect.w / 4, frameRect.h / 4, frameRect.w / 2,
                      frameRect.h / 2};
   }
 
-  // Position the hitbox relative to the world
   collisionRect.x += static_cast<int>(mover.position.x);
   collisionRect.y += static_cast<int>(mover.position.y);
   return collisionRect;
@@ -87,6 +85,11 @@ void Character::handleInput() {
   if (Input::isKeyDown(SDL_SCANCODE_A)) {
     attack();
   }
+  if (Input::isKeyDown(SDL_SCANCODE_D)) {
+    mover.applyForce(Vector2f(moveForce * 4, 0));
+    mover.velocity.y = -300.0f;
+    dash();
+  }
   if (Input::isKeyDown(SDL_SCANCODE_B)) {
     block();
   }
@@ -97,10 +100,19 @@ void Character::handleInput() {
 }
 
 void Character::attack() {
+
+  const float attackCost = 20.0f;
+  if (stamina < attackCost) {
+    Logger::debug("Not enough stamina for attack!");
+
+    return;
+  }
+
+  stamina -= attackCost;
+
   FramePhase phase = animator->getCurrentFramePhase();
   auto currentAnimationKey = animator->getCurrentAnimationKey();
 
-  // Combo system
   if (phase == FramePhase::Recovery) {
     if (currentAnimationKey == "Attack") {
       animator->play("Attack 2");
@@ -113,14 +125,34 @@ void Character::attack() {
     }
   }
 
-  // Normal attack if not in a combo
   if (phase != FramePhase::Active && phase != FramePhase::Startup) {
     animator->play("Attack");
     Logger::debug("Attack initiated.");
   }
 }
 
+void Character::dash() {
+  const float dashCost = 15.0f;
+  if (stamina < dashCost) {
+    Logger::debug("Not enough stamina for dash!");
+    return;
+  }
+  stamina -= dashCost;
+
+  FramePhase phase = animator->getCurrentFramePhase();
+  if (phase == FramePhase::Active)
+    return;
+  animator->play("Dash");
+}
+
 void Character::block() {
+  const float blockCost = 10.0f;
+  if (stamina < blockCost) {
+    Logger::debug("Not enough stamina for block!");
+    return;
+  }
+  stamina -= blockCost;
+
   FramePhase phase = animator->getCurrentFramePhase();
   if (phase == FramePhase::Active)
     return;
@@ -143,38 +175,50 @@ void Character::applyDamage(int damage, bool survive) {
     health = survive ? 1 : 0;
   Logger::debug("Damage applied: " + std::to_string(damage) +
                 ". Health now: " + std::to_string(health));
-  // If floating damage is enabled, add a damage event.
+
   if (g_showFloatingDamage) {
     addDamageEvent(mover.position, damage);
+  }
+
+  // If the character has been hit with a heavy combo (e.g., comboCount >= 3)
+  // then play the "Knocked" animation and perhaps disable movement.
+  if (comboCount >= 2 && animator->getCurrentAnimationKey() != "Knocked") {
+    animator->play("Knocked");
+    // Optionally, you might set a flag here to disable input until the knocked
+    // animation is finished.
+  }
+
+  // If health is 0, then play the Die animation.
+  if (health <= 0 && animator->getCurrentAnimationKey() != "Die") {
+    animator->play("Die");
   }
 }
 
 void Character::update(float deltaTime) {
-  // First compute collision rectangle and apply physics
+
   SDL_Rect collRect = getHitboxRect();
   if (collRect.h == 0) {
     collRect = animator->getCurrentFrameRect();
   }
 
-  // Apply gravity if not on ground
   if (!onGround) {
     mover.applyForce(Vector2f(0, GRAVITY));
   }
 
-  // Update physics and animation
+  const float staminaRecoveryRate = 50.0f;
+  stamina = std::min(maxStamina, stamina + staminaRecoveryRate * deltaTime);
+
   mover.update(deltaTime);
   animator->update(deltaTime);
 
-  // Ground detection and correction
   collRect = getHitboxRect();
   if (collRect.h == 0) {
     collRect = animator->getCurrentFrameRect();
   }
   int charBottom = static_cast<int>(mover.position.y) + collRect.h;
 
-  // Ground collision check and correction
   if (charBottom >= GROUND_LEVEL) {
-    // Snap to ground
+
     mover.position.y = GROUND_LEVEL - collRect.h;
     mover.velocity.y = 0;
     onGround = true;
@@ -184,31 +228,51 @@ void Character::update(float deltaTime) {
     groundFrames = 0;
   }
 
+  if (animator->getCurrentAnimationKey() == "Jump") {
+    // Use the vertical velocity to choose the frame.
+    float vy = mover.velocity.y;
+    int jumpFrame = 0;
+    // For example:
+    if (vy < -200)
+      jumpFrame = 0; // initial upward movement
+    else if (vy < -100)
+      jumpFrame = 3; // still going up
+    else if (std::abs(vy) < 50)
+      jumpFrame = 6; // apex of jump
+    else if (vy < 100)
+      jumpFrame = 9; // beginning of descent
+    else
+      jumpFrame = 12; // final landing frame
+
+    animator->setFrameIndex(jumpFrame);
+  }
+
   FramePhase currentPhase = animator->getCurrentFramePhase();
 
-  // Animation state update
   if (currentPhase == FramePhase::Active ||
       currentPhase == FramePhase::Startup) {
-    // Don't interrupt attack animations
+
     return;
   }
 
-  // Don't transition to idle/walk during recovery unless overridden by a new
-  // attack
   if (currentPhase == FramePhase::Recovery &&
       !animator->isAnimationFinished()) {
     return;
   }
 
-  bool shouldBeIdle = !isMoving || (std::abs(mover.velocity.x) < 2.0f &&
-                                    std::abs(mover.velocity.y) < 2.0f);
+  bool shouldBeIdle = !isMoving || (std::abs(mover.velocity.x) < 1.0f &&
+                                    std::abs(mover.velocity.y) < 1.0f);
 
   if (shouldBeIdle) {
     if (animator->getCurrentAnimationKey() != "Idle") {
       animator->play("Idle");
     }
   } else if (isMoving && animator->getCurrentAnimationKey() != "Walk") {
-    animator->play("Walk");
+    if (animator->getReverse()) {
+      animator->play("Walk");
+    } else {
+      animator->play("Walk_Backward");
+    }
   }
 }
 
@@ -217,15 +281,74 @@ void Character::render(SDL_Renderer *renderer, float cameraScale) {
                    static_cast<int>(mover.position.y), cameraScale);
   SDL_Rect collRect = getHitboxRect();
   SDL_Rect healthBar = {collRect.x, collRect.y - 10, collRect.w, 5};
-  float ratio = static_cast<float>(health) / maxHealth;
+  float healthRatio = static_cast<float>(health) / maxHealth;
+
   SDL_Rect healthFill = {healthBar.x, healthBar.y,
-                         static_cast<int>(healthBar.w * ratio), healthBar.h};
+                         static_cast<int>(healthBar.w * healthRatio),
+                         healthBar.h};
+
   SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
   SDL_RenderFillRect(renderer, &healthBar);
   SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
   SDL_RenderFillRect(renderer, &healthFill);
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
   SDL_RenderDrawRect(renderer, &healthBar);
+
+  SDL_Rect staminaBar = {collRect.x, collRect.y - 30, collRect.w, 5};
+  float staminaRatio = static_cast<float>(stamina) / maxStamina;
+  SDL_Rect staminaFill = {staminaBar.x, staminaBar.y,
+                          static_cast<int>(staminaBar.w * staminaRatio),
+                          staminaBar.h};
+  SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
+  SDL_RenderFillRect(renderer, &staminaBar);
+  SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+  SDL_RenderFillRect(renderer, &staminaFill);
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+  SDL_RenderDrawRect(renderer, &staminaBar);
+}
+
+void Character::renderWithCamera(SDL_Renderer *renderer, const Camera &camera,
+                                 const Config &config) {
+  // Compute the offset (similar to your lambda)
+  float offsetX = config.windowWidth * 0.5f - camera.position.x * camera.scale;
+  float offsetY = config.windowHeight * 0.5f - camera.position.y * camera.scale;
+
+  int renderX = static_cast<int>(offsetX + mover.position.x * camera.scale);
+  int renderY = static_cast<int>(offsetY + mover.position.y * camera.scale);
+
+  // Render the character sprite via its animator:
+  animator->render(renderer, renderX, renderY, camera.scale);
+
+  // Render UI overlays (health bar, stamina bar, etc.)
+  SDL_Rect collRect = getHitboxRect();
+  collRect.x = static_cast<int>(offsetX + collRect.x * camera.scale);
+  collRect.y = static_cast<int>(offsetY + collRect.y * camera.scale);
+
+  // Health Bar:
+  SDL_Rect healthBar = {collRect.x, collRect.y - 10, collRect.w, 5};
+  float healthRatio = static_cast<float>(health) / maxHealth;
+  SDL_Rect healthFill = {healthBar.x, healthBar.y,
+                         static_cast<int>(healthBar.w * healthRatio),
+                         healthBar.h};
+  SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+  SDL_RenderFillRect(renderer, &healthBar);
+  SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+  SDL_RenderFillRect(renderer, &healthFill);
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+  SDL_RenderDrawRect(renderer, &healthBar);
+
+  // Similarly draw the stamina bar...
+  SDL_Rect staminaBar = {collRect.x, collRect.y - 30, collRect.w, 5};
+  float staminaRatio = static_cast<float>(stamina) / maxStamina;
+  SDL_Rect staminaFill = {staminaBar.x, staminaBar.y,
+                          static_cast<int>(staminaBar.w * staminaRatio),
+                          staminaBar.h};
+  SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
+  SDL_RenderFillRect(renderer, &staminaBar);
+  SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+  SDL_RenderFillRect(renderer, &staminaFill);
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+  SDL_RenderDrawRect(renderer, &staminaBar);
 }
 
 void Character::updateFacing(const Character &target) {
