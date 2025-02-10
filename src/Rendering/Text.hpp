@@ -1,3 +1,5 @@
+#pragma once
+
 #include "Resources/R.hpp"
 #include <SDL_ttf.h>
 #include <string>
@@ -7,7 +9,8 @@ inline static void drawText(SDL_Renderer *renderer, const std::string &text,
   TTF_Font *font = TTF_OpenFont(R::font("seguiemj.ttf").c_str(), 14);
   if (!font)
     return;
-  SDL_Surface *surface = TTF_RenderText_Blended(font, text.c_str(), color);
+  SDL_Surface *surface =
+      TTF_RenderText_Blended_Wrapped(font, text.c_str(), color, 1000);
   if (!surface) {
     TTF_CloseFont(font);
     return;

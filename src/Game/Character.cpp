@@ -8,10 +8,10 @@
 #include <SDL.h>
 #include <algorithm>
 
-Character::Character(Animator *anim)
+Character::Character(Animator *anim, Config &config)
     : animator(anim), health(1000), maxHealth(1000), onGround(false),
       isMoving(false), groundFrames(0), inputDirection(0), stamina(100.0f),
-      maxStamina(500.0f) {}
+      maxStamina(500.0f), m_config(config) {}
 
 SDL_Rect Character::getHitboxRect(HitboxType type) const {
   const auto &hitboxes = animator->getCurrentHitboxes();
@@ -68,7 +68,7 @@ void Character::handleInput() {
     return;
   }
 
-  const float moveForce = 500.0f;
+  const float moveForce = m_config.moveForce;
   isMoving = false;
   inputDirection = 0;
 
@@ -94,7 +94,7 @@ void Character::handleInput() {
     block();
   }
   if (Input::isKeyDown(SDL_SCANCODE_SPACE) && onGround &&
-      groundFrames >= STABLE_GROUND_FRAMES) {
+      groundFrames >= m_config.stableGroundFrames) {
     jump();
   }
 }
@@ -161,7 +161,7 @@ void Character::block() {
 
 void Character::jump() {
   groundFrames = 0;
-  mover.velocity.y = -500.0f;
+  mover.velocity.y = m_config.jumpVelocity;
   onGround = false;
   Logger::debug("Jump initiated.");
 }
@@ -180,29 +180,23 @@ void Character::applyDamage(int damage, bool survive) {
     addDamageEvent(mover.position, damage);
   }
 
-  // If the character has been hit with a heavy combo (e.g., comboCount >= 3)
-  // then play the "Knocked" animation and perhaps disable movement.
   if (comboCount >= 2 && animator->getCurrentAnimationKey() != "Knocked") {
     animator->play("Knocked");
-    // Optionally, you might set a flag here to disable input until the knocked
-    // animation is finished.
   }
 
-  // If health is 0, then play the Die animation.
   if (health <= 0 && animator->getCurrentAnimationKey() != "Die") {
     animator->play("Die");
   }
 }
 
 void Character::update(float deltaTime) {
-
   SDL_Rect collRect = getHitboxRect();
   if (collRect.h == 0) {
     collRect = animator->getCurrentFrameRect();
   }
 
   if (!onGround) {
-    mover.applyForce(Vector2f(0, GRAVITY));
+    mover.applyForce(Vector2f(0, m_config.gravity));
   }
 
   const float staminaRecoveryRate = 50.0f;
@@ -215,34 +209,35 @@ void Character::update(float deltaTime) {
   if (collRect.h == 0) {
     collRect = animator->getCurrentFrameRect();
   }
-  int charBottom = static_cast<int>(mover.position.y) + collRect.h;
 
-  if (charBottom >= GROUND_LEVEL) {
+  float charBottom = mover.position.y + collRect.h;
+  float groundY = m_config.groundLevel;
 
-    mover.position.y = GROUND_LEVEL - collRect.h;
+  if (charBottom >= groundY) {
+    mover.position.y = groundY - collRect.h;
     mover.velocity.y = 0;
     onGround = true;
     groundFrames++;
-  } else if (charBottom < GROUND_LEVEL - GROUND_THRESHOLD) {
+  } else if (charBottom < groundY - m_config.groundThreshold) {
     onGround = false;
     groundFrames = 0;
   }
 
   if (animator->getCurrentAnimationKey() == "Jump") {
-    // Use the vertical velocity to choose the frame.
+
     float vy = mover.velocity.y;
     int jumpFrame = 0;
-    // For example:
+
     if (vy < -200)
-      jumpFrame = 0; // initial upward movement
+      jumpFrame = 0;
     else if (vy < -100)
-      jumpFrame = 3; // still going up
+      jumpFrame = 3;
     else if (std::abs(vy) < 50)
-      jumpFrame = 6; // apex of jump
+      jumpFrame = 6;
     else if (vy < 100)
-      jumpFrame = 9; // beginning of descent
+      jumpFrame = 9;
     else
-      jumpFrame = 12; // final landing frame
+      jumpFrame = 12;
 
     animator->setFrameIndex(jumpFrame);
   }
@@ -268,11 +263,7 @@ void Character::update(float deltaTime) {
       animator->play("Idle");
     }
   } else if (isMoving && animator->getCurrentAnimationKey() != "Walk") {
-    if (animator->getReverse()) {
-      animator->play("Walk");
-    } else {
-      animator->play("Walk_Backward");
-    }
+    animator->play("Walk");
   }
 }
 
@@ -309,22 +300,19 @@ void Character::render(SDL_Renderer *renderer, float cameraScale) {
 
 void Character::renderWithCamera(SDL_Renderer *renderer, const Camera &camera,
                                  const Config &config) {
-  // Compute the offset (similar to your lambda)
+
   float offsetX = config.windowWidth * 0.5f - camera.position.x * camera.scale;
   float offsetY = config.windowHeight * 0.5f - camera.position.y * camera.scale;
 
   int renderX = static_cast<int>(offsetX + mover.position.x * camera.scale);
   int renderY = static_cast<int>(offsetY + mover.position.y * camera.scale);
 
-  // Render the character sprite via its animator:
   animator->render(renderer, renderX, renderY, camera.scale);
 
-  // Render UI overlays (health bar, stamina bar, etc.)
   SDL_Rect collRect = getHitboxRect();
   collRect.x = static_cast<int>(offsetX + collRect.x * camera.scale);
   collRect.y = static_cast<int>(offsetY + collRect.y * camera.scale);
 
-  // Health Bar:
   SDL_Rect healthBar = {collRect.x, collRect.y - 10, collRect.w, 5};
   float healthRatio = static_cast<float>(health) / maxHealth;
   SDL_Rect healthFill = {healthBar.x, healthBar.y,
@@ -337,7 +325,6 @@ void Character::renderWithCamera(SDL_Renderer *renderer, const Camera &camera,
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
   SDL_RenderDrawRect(renderer, &healthBar);
 
-  // Similarly draw the stamina bar...
   SDL_Rect staminaBar = {collRect.x, collRect.y - 30, collRect.w, 5};
   float staminaRatio = static_cast<float>(stamina) / maxStamina;
   SDL_Rect staminaFill = {staminaBar.x, staminaBar.y,

@@ -1,5 +1,6 @@
 #pragma once
 #include "AI/NeuralNetwork.hpp"
+#include "Core/Config.hpp"
 #include "Game/Character.hpp"
 #include "State.hpp"
 #include <deque>
@@ -20,13 +21,14 @@ struct PrioritizedExperience {
 
 class RLAgent {
 public:
-  RLAgent(Character *character);
+  RLAgent(Character *character, Config &config);
   void update(float deltaTime, const Character &opponent);
   void reset();
   void startNewEpoch();
 
   Action lastAction() { return m_lastAction; }
   float totalReward() { return m_totalReward; }
+  void reportWin(bool didWin);
 
   float getEpsilon() const { return m_epsilon; }
   float getLearningRate() const { return m_learningRate; }
@@ -124,6 +126,8 @@ private:
   std::deque<ActionType> m_actionHistory;
   std::deque<ActionType> m_opponentActionHistory;
   int m_comboCount;
+
+  Config &m_config;
 
   // For opponent prediction.
   Vector2f m_lastOpponentPosition;

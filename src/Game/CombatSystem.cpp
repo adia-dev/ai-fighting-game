@@ -1,43 +1,21 @@
 #include "CombatSystem.hpp"
 #include "Core/Logger.hpp"
 
-CombatSystem::CombatSystem()
-    : m_roundTime(ROUND_DURATION), m_isRoundActive(true), m_roundCount(0),
-      m_playerWins(0), m_enemyWins(0) {}
+CombatSystem::CombatSystem(Config &config)
+    : m_config(config), m_roundTime(ROUND_DURATION), m_isRoundActive(true),
+      m_roundCount(0), m_playerWins(0), m_enemyWins(0) {}
 void CombatSystem::update(float deltaTime, Character &player,
                           Character &enemy) {
   if (!m_isRoundActive)
     return;
 
-  float timeMultiplier =
-      m_trainingMode ? 3.0f : 1.0f; // Training runs 3x faster
+  float timeMultiplier = m_trainingMode ? 3.0f : 1.0f;
   m_roundTime -= deltaTime * timeMultiplier;
 
-  // Additional penalties in training mode
-  // if (m_trainingMode) {
-  //   // Penalize stalling by reducing the time more quickly if no damage is
-  //   // dealt
-  //   if (m_timeSinceLastDamage > 5.0f) {
-  //     m_roundTime -= deltaTime; // Additional time penalty
-  //   }
-  //
-  //   // Track damage dealt/received for penalties
-  //   bool damageDealt = (player.health != m_lastPlayerHealth ||
-  //                       enemy.health != m_lastEnemyHealth);
-  //
-  //   if (damageDealt) {
-  //     m_timeSinceLastDamage = 0.0f;
-  //   } else {
-  //     m_timeSinceLastDamage += deltaTime * timeMultiplier;
-  //   }
-  // }
-
-  // End round conditions
   if (m_roundTime <= 0 || player.health <= 0 || enemy.health <= 0) {
     endRound(player, enemy);
   }
 
-  // Store health values for next frame
   m_lastPlayerHealth = player.health;
   m_lastEnemyHealth = enemy.health;
 }
@@ -89,10 +67,14 @@ void CombatSystem::endRound(Character &player, Character &enemy) {
 
 void CombatSystem::resetCharacter(Character &character,
                                   const Vector2f &position) {
-  character.mover.position = position;
+  SDL_Rect charRect = character.animator->getCurrentFrameRect();
+  float groundedY = m_config.groundLevel - charRect.h;
+
+  character.mover.position = Vector2f(position.x, groundedY);
   character.mover.velocity = Vector2f(0, 0);
   character.health = character.maxHealth;
-  character.onGround = false;
+  character.onGround = true;
+  character.groundFrames = m_config.stableGroundFrames;
   character.animator->play("Idle");
 }
 

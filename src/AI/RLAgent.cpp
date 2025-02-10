@@ -6,24 +6,39 @@
 static constexpr float DEFAULT_EPISODE_DURATION = 60.0f;
 static constexpr int TARGET_UPDATE_FREQUENCY = 1000;
 
-RLAgent::RLAgent(Character *character)
+static ActionType animationKeyToActionType(const std::string &animKey) {
+
+  if (animKey.find("Attack") != std::string::npos)
+    return ActionType::Attack;
+  if (animKey.find("Block") != std::string::npos)
+    return ActionType::Block;
+  if (animKey.find("Jump") != std::string::npos)
+    return ActionType::Jump;
+  if (animKey.find("Dash") != std::string::npos)
+    return ActionType::MoveRight;
+
+  return ActionType::Noop;
+}
+
+RLAgent::RLAgent(Character *character, Config &config)
     : m_character(character), m_totalReward(0), m_episodeTime(0),
       m_episodeDuration(DEFAULT_EPISODE_DURATION), m_timeSinceLastAction(0),
       m_lastHealth(100), m_currentActionDuration(0), m_actionHoldDuration(0.2f),
       m_consecutiveWhiffs(0), m_lastOpponentHealth(0), m_epsilon(0.3f),
       m_learningRate(0.001f), m_discountFactor(0.95f), m_episodeCount(0),
       updateCounter(0), m_wins(0), m_gen(m_rd()), m_dist(0.0f, 1.0f),
-      m_moveHoldCounter(0), m_currentStance(Stance::Neutral), m_comboCount(0) {
+      m_moveHoldCounter(0), m_currentStance(Stance::Neutral), m_comboCount(0),
+      m_config(config) {
 
   state_dim = 14;
   num_actions = 9;
 
   onlineDQN = std::make_unique<NeuralNetwork>(state_dim);
-  onlineDQN->addLayer(64, ActivationType::ReLU);
+  onlineDQN->addLayer(64, ActivationType::Sigmoid);
   onlineDQN->addLayer(num_actions, ActivationType::None);
 
   targetDQN = std::make_unique<NeuralNetwork>(state_dim);
-  targetDQN->addLayer(64, ActivationType::ReLU);
+  targetDQN->addLayer(64, ActivationType::Sigmoid);
   targetDQN->addLayer(num_actions, ActivationType::None);
 
   m_battleStyle.timePenalty = 0.004f;
@@ -57,7 +72,6 @@ std::vector<float> RLAgent::stateToVector(const State &state) {
   v.push_back(state.predictedDistance);
   v.push_back(static_cast<float>(state.currentStance));
 
-  // NEW: Add stamina information
   v.push_back(state.myStamina);
   v.push_back(state.myMaxStamina);
 
@@ -76,7 +90,6 @@ State RLAgent::getCurrentState(const Character &opponent) {
       static_cast<float>(opponent.health) / opponent.maxHealth;
   state.timeSinceLastAction = m_timeSinceLastAction;
 
-  // Fill radar features (as before)
   state.radar[0] =
       (toOpponent.x >= 0 && toOpponent.y >= 0) ? toOpponent.length() : 0;
   state.radar[1] =
@@ -92,18 +105,17 @@ State RLAgent::getCurrentState(const Character &opponent) {
   float posX = m_character->mover.position.x;
   state.isCornered = (posX < 150 || posX > 850);
 
-  // Copy action histories as before
-  std::array<ActionType, 3> selfHist = {ActionType::Noop, ActionType::Noop,
+  std::array<ActionType, 10> selfHist = {ActionType::Noop, ActionType::Noop,
+                                         ActionType::Noop};
+  std::array<ActionType, 10> oppHist = {ActionType::Noop, ActionType::Noop,
                                         ActionType::Noop};
-  std::array<ActionType, 3> oppHist = {ActionType::Noop, ActionType::Noop,
-                                       ActionType::Noop};
   int i = 0;
   for (auto it = m_actionHistory.rbegin();
-       it != m_actionHistory.rend() && i < 3; ++it, ++i)
+       it != m_actionHistory.rend() && i < 10; ++it, ++i)
     selfHist[i] = *it;
   i = 0;
   for (auto it = m_opponentActionHistory.rbegin();
-       it != m_opponentActionHistory.rend() && i < 3; ++it, ++i)
+       it != m_opponentActionHistory.rend() && i < 10; ++it, ++i)
     oppHist[i] = *it;
   state.lastActions = selfHist;
   state.opponentLastActions = oppHist;
@@ -114,9 +126,8 @@ State RLAgent::getCurrentState(const Character &opponent) {
 
   state.currentStance = m_currentStance;
 
-  // NEW: Set stamina values (normalized)
   state.myStamina = m_character->stamina / m_character->maxStamina;
-  state.myMaxStamina = 1.0f; // (normalized maximum can be always 1.0)
+  state.myMaxStamina = 1.0f;
 
   return state;
 }
@@ -125,29 +136,79 @@ Action RLAgent::selectAction(const State &state) {
   auto state_vec = stateToVector(state);
   auto q_values = onlineDQN->forward(state_vec);
   Action selectedAction;
-  if (m_dist(m_gen) < m_epsilon) {
-    int random_action = static_cast<int>(m_dist(m_gen) * num_actions);
-    selectedAction = Action::fromType(static_cast<ActionType>(random_action));
+
+  // Increase exploration in dangerous situations
+  float situationalEpsilon = m_epsilon;
+  if (state.myHealth < 0.3f || state.isCornered) {
+    situationalEpsilon *= 1.5f;
+  }
+
+  if (m_dist(m_gen) < situationalEpsilon) {
+    // Smart random action selection
+    std::vector<ActionType> validActions;
+    for (int i = 0; i < num_actions; i++) {
+      validActions.push_back(static_cast<ActionType>(i));
+    }
+
+    // Filter out obviously bad actions based on state
+    if (state.isCornered) {
+      // Remove actions that would push further into corner
+      float posX = m_character->mover.position.x;
+      if (posX < 150.f) {
+        validActions.erase(std::remove(validActions.begin(), validActions.end(),
+                                       ActionType::MoveLeft),
+                           validActions.end());
+      } else if (posX > 850.f) {
+        validActions.erase(std::remove(validActions.begin(), validActions.end(),
+                                       ActionType::MoveRight),
+                           validActions.end());
+      }
+    }
+
+    if (m_character->stamina < 20.f) {
+      // Remove stamina-consuming actions when low
+      validActions.erase(std::remove(validActions.begin(), validActions.end(),
+                                     ActionType::Attack),
+                         validActions.end());
+      validActions.erase(std::remove(validActions.begin(), validActions.end(),
+                                     ActionType::JumpAttack),
+                         validActions.end());
+    }
+
+    // Select from remaining valid actions
+    int randomIndex = static_cast<int>(m_dist(m_gen) * validActions.size());
+    selectedAction = Action::fromType(validActions[randomIndex]);
   } else {
     int bestAction = std::distance(
         q_values.begin(), std::max_element(q_values.begin(), q_values.end()));
     selectedAction = Action::fromType(static_cast<ActionType>(bestAction));
   }
 
+  // Override actions in critical situations
   Action predictedOppAction = predictOpponentAction(state);
-  // Only force block if the opponent is predicted to attack AND
-  // if we are not already blocking.
-  if (predictedOppAction.type == ActionType::Attack &&
-      selectedAction.type != ActionType::Block &&
-      m_lastAction.type != ActionType::Block) {
-    selectedAction = Action::fromType(ActionType::Block);
+
+  // Defensive overrides
+  if (state.myHealth < state.opponentHealth * 0.3f ||
+      m_currentStance == Stance::Defensive) {
+    if (predictedOppAction.type == ActionType::Attack && m_dist(m_gen) < 0.8f) {
+      selectedAction = Action::fromType(ActionType::Block);
+    }
   }
 
-  // Also, if our stance is Defensive, force Block if the action is attack-like.
-  if (m_currentStance == Stance::Defensive &&
-      (selectedAction.type == ActionType::Attack ||
-       selectedAction.type == ActionType::JumpAttack)) {
-    selectedAction = Action::fromType(ActionType::Block);
+  // Positioning overrides
+  float posX = m_character->mover.position.x;
+  if (posX < 150.f) {
+    selectedAction = Action::fromType(ActionType::MoveRight);
+  } else if (posX > 850.f) {
+    selectedAction = Action::fromType(ActionType::MoveLeft);
+  }
+
+  // Record the Q-value for visualization
+  if (static_cast<size_t>(selectedAction.type) < q_values.size()) {
+    m_qValueHistory.push_back(q_values[static_cast<int>(selectedAction.type)]);
+    if (m_qValueHistory.size() > 100) {
+      m_qValueHistory.erase(m_qValueHistory.begin());
+    }
   }
 
   return selectedAction;
@@ -156,57 +217,113 @@ Action RLAgent::selectAction(const State &state) {
 float RLAgent::calculateReward(const State &state, const Action &action) {
   float reward = 0.0f;
 
-  reward += (state.myHealth - state.opponentHealth) * 15.0f;
+  // Base reward based on health differential
+  float healthDiff = state.myHealth - state.opponentHealth;
+  reward += healthDiff * m_config.ai.healthDiffReward;
 
-  if (action.attack && m_character->lastAttackLanded) {
-    reward += 25.0f;
-    if (!m_actionHistory.empty() && m_actionHistory.back() == action.type)
-      reward += 10.0f * (++m_comboCount);
-  } else if (action.attack) {
-    reward -= 8.0f;
-    m_comboCount = 0;
+  // Position-based rewards/penalties
+  float posX = m_character->mover.position.x;
+
+  // Strong penalty for being in deadzones
+  if (posX < m_config.ai.deadzoneBoundary ||
+      posX > m_config.windowWidth - m_config.ai.deadzoneBoundary) {
+
+    float distanceFromCenter = std::abs(posX - (m_config.windowWidth / 2.0f));
+    float deadzoneDepth = std::min(m_config.ai.deadzoneBoundary,
+                                   std::min(posX, m_config.windowWidth - posX));
+
+    // Exponential penalty based on how deep in the deadzone we are
+    reward += m_config.ai.deadzoneBasePenalty +
+              (1.0f - (deadzoneDepth / m_config.ai.deadzoneBoundary)) *
+                  m_config.ai.deadzoneDepthPenalty;
+
+    // Extra penalty for moving further into the deadzone
+    if ((posX < m_config.ai.deadzoneBoundary && action.moveLeft) ||
+        (posX > m_config.windowWidth - m_config.ai.deadzoneBoundary &&
+         action.moveRight)) {
+      reward += m_config.ai.moveIntoDeadzonePenalty;
+    }
+
+    // Reward for trying to escape the deadzone
+    if ((posX < m_config.ai.deadzoneBoundary && action.moveRight) ||
+        (posX > m_config.windowWidth - m_config.ai.deadzoneBoundary &&
+         action.moveLeft)) {
+      reward += m_config.ai.escapeDeadzoneReward;
+    }
   }
 
-  const float stageWidth = 1000.0f;
-  float posX = m_character->mover.position.x;
-  if (posX < 150 || posX > stageWidth - 150)
-    reward -= 15.0f;
-  float oppX = m_lastOpponentPosition.x;
-  if (oppX < 150 || oppX > stageWidth - 150)
-    reward += 10.0f;
+  // Optimal distance management
+  float distanceToOpponent = state.distanceToOpponent;
+  float distanceScore =
+      -std::abs(distanceToOpponent - m_config.ai.optimalDistance) *
+      m_config.ai.distanceMultiplier;
+  reward += distanceScore;
 
-  float approachSpeed = state.opponentVelocityX *
-                        (state.relativePositionX / state.distanceToOpponent);
-  reward += approachSpeed * 0.2f;
+  // Combat rewards
+  if (action.attack) {
+    if (m_character->lastAttackLanded) {
+      reward += m_config.ai.hitReward;
 
-  if (action.block && m_character->lastBlockEffective)
-    reward += 15.0f;
-  else if (action.block)
-    reward -= 5.0f;
+      // Combo bonus
+      if (!m_actionHistory.empty() && m_actionHistory.back() == action.type) {
+        float comboMultiplier =
+            std::min(m_config.ai.maxComboMultiplier,
+                     1.0f + (m_comboCount * m_config.ai.comboBaseMultiplier));
+        reward += m_config.ai.hitReward * comboMultiplier;
+      }
 
-  if (m_actionHistory.size() >= 3) {
-    bool same = true;
-    auto it = m_actionHistory.end();
-    ActionType last = *(--it);
-    for (int i = 0; i < 2; i++) {
-      if (*(--it) != last) {
-        same = false;
-        break;
+      // Extra reward for attacking while at optimal distance
+      if (std::abs(distanceToOpponent - m_config.ai.optimalDistance) < 50.0f) {
+        reward += m_config.ai.optimalDistanceBonus;
+      }
+    } else {
+      reward += m_config.ai.missPenalty;
+
+      // Larger penalty for whiffing from far away
+      if (distanceToOpponent > m_config.ai.optimalDistance * 1.5f) {
+        reward += m_config.ai.farWhiffPenalty;
       }
     }
-    if (same)
-      reward -= 7.0f;
   }
 
+  // Defensive action rewards
+  if (action.block) {
+    if (m_character->lastBlockEffective) {
+      reward += m_config.ai.blockReward;
+      if (state.opponentLastActions[0] == ActionType::Attack) {
+        reward += m_config.ai.wellTimedBlockBonus;
+      }
+    } else {
+      reward += m_config.ai.blockPenalty;
+    }
+  }
+
+  // Stamina management
   if (m_character->stamina <= 0.0f) {
-    reward -= 50.0f;
+    reward += m_config.ai.noStaminaPenalty;
+  } else if (m_character->stamina <
+             m_character->maxStamina * m_config.ai.lowStaminaThreshold) {
+    reward += m_config.ai.lowStaminaPenalty;
   }
 
+  // Movement diversity
+  if (m_actionHistory.size() >= 3) {
+    bool sameAction =
+        std::all_of(m_actionHistory.begin(), m_actionHistory.end(),
+                    [first = m_actionHistory.front()](const ActionType &act) {
+                      return act == first;
+                    });
+    if (sameAction) {
+      reward += m_config.ai.repeatActionPenalty;
+    }
+  }
+
+  // Apply battle style modifiers
   reward -= m_battleStyle.timePenalty;
-  reward +=
-      (state.myHealth - state.opponentHealth) * m_battleStyle.hpRatioWeight;
-  reward -= std::abs(state.distanceToOpponent - 150.0f) *
+  reward += healthDiff * m_battleStyle.hpRatioWeight;
+  reward -= std::abs(distanceToOpponent - m_config.ai.optimalDistance) *
             m_battleStyle.distancePenalty;
+
   return reward;
 }
 
@@ -307,19 +424,40 @@ void RLAgent::updateStance(const State &state) {
 }
 
 Action RLAgent::predictOpponentAction(const State &state) {
+  if (m_opponentActionHistory.empty()) {
+    int random_action = static_cast<int>(m_dist(m_gen) * num_actions);
+    return Action::fromType(static_cast<ActionType>(random_action));
+  }
 
-  int random_action = static_cast<int>(m_dist(m_gen) * num_actions);
-  return Action::fromType(static_cast<ActionType>(random_action));
+  std::map<ActionType, int> freq;
+  for (auto act : m_opponentActionHistory) {
+    freq[act]++;
+  }
+  ActionType mostCommon = m_opponentActionHistory.front();
+  int maxCount = 0;
+  for (auto &p : freq) {
+    if (p.second > maxCount) {
+      maxCount = p.second;
+      mostCommon = p.first;
+    }
+  }
+  return Action::fromType(mostCommon);
+}
+
+void RLAgent::reportWin(bool didWin) {
+  m_episodeCount++;
+  if (didWin)
+    m_wins++;
 }
 
 void RLAgent::trackActionHistory(ActionType action, bool isOpponent) {
   if (isOpponent) {
     m_opponentActionHistory.push_back(action);
-    if (m_opponentActionHistory.size() > 3)
+    if (m_opponentActionHistory.size() > 10)
       m_opponentActionHistory.pop_front();
   } else {
     m_actionHistory.push_back(action);
-    if (m_actionHistory.size() > 3)
+    if (m_actionHistory.size() > 10)
       m_actionHistory.pop_front();
   }
 }
@@ -349,6 +487,12 @@ void RLAgent::update(float deltaTime, const Character &opponent) {
 
   m_opponentVelocity = opponent.mover.position - m_lastOpponentPosition;
   m_lastOpponentPosition = opponent.mover.position;
+
+  {
+    std::string oppAnim = opponent.animator->getCurrentAnimationKey();
+    ActionType oppAction = animationKeyToActionType(oppAnim);
+    trackActionHistory(oppAction, true);
+  }
 
   m_episodeTime += deltaTime;
   m_timeSinceLastAction += deltaTime;
@@ -403,6 +547,9 @@ void RLAgent::reset() {
 }
 
 void RLAgent::startNewEpoch() {
+  bool didWin = (m_character->health > (m_character->maxHealth * 0.5f));
+  reportWin(didWin);
+
   m_character->mover.position = {100, 100};
   m_character->health = m_character->maxHealth;
   reset();

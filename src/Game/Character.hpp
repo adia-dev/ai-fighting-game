@@ -7,12 +7,6 @@
 #include "Rendering/Camera.hpp"
 #include <SDL.h>
 
-// TODO: Use constants from Config
-static const float GRAVITY = 980.0f;
-static const int GROUND_LEVEL = 500;
-static const int GROUND_THRESHOLD = 5;
-static const int STABLE_GROUND_FRAMES = 3;
-
 class Character {
 public:
   Mover mover;
@@ -35,7 +29,7 @@ public:
   // State
   CharacterState state;
 
-  Character(Animator *anim);
+  Character(Animator *anim, Config &config);
 
   SDL_Rect getHitboxRect(HitboxType type = HitboxType::Collision) const;
 
@@ -60,4 +54,7 @@ public:
   void dash();
 
   void block();
+
+private:
+  Config &m_config;
 };

@@ -30,7 +30,7 @@ bool FightSystem::processHit(Character &attacker, Character &defender) {
 
     // Check for block first
     if (CollisionSystem::checkCollision(hbRect, defenderBlockBox)) {
-      defender.applyDamage(5, true);
+      defender.applyDamage(10, true);
       defender.block();
       defender.lastBlockEffective = true;
       attacker.lastAttackLanded = false;
@@ -47,8 +47,8 @@ bool FightSystem::processHit(Character &attacker, Character &defender) {
 
       // TODO: Make it dynamic based on the attack (should be on the state of
       // the hitbox)
-      float baseImpulse = 200.0f;
-      defender.applyDamage(80 * attacker.comboCount * 1.25f);
+      float baseImpulse = 500.0f;
+      defender.applyDamage(15 * attacker.comboCount * 1.25f);
       float knockbackForce = baseImpulse * (1.0f + attacker.comboCount * 0.1f);
       CollisionSystem::applyCollisionImpulse(attacker, defender,
                                              knockbackForce);

@@ -10,6 +10,8 @@
 #include "Core/Maths.hpp"
 #include "Data/Animation.hpp"
 #include "Game/CollisionSystem.hpp"
+#include "Rendering/ConfigEditor.hpp"
+#include "Rendering/DebugOverlay.hpp"
 #include "Rendering/Text.hpp"
 #include "Resources/PiksyAnimationLoader.hpp"
 #include "Resources/R.hpp"
@@ -26,9 +28,11 @@
 
 void Game::init() {
   Logger::init();
+  m_combatSystem = std::make_unique<CombatSystem>(m_config);
   initWindow();
   initRenderer();
   initResourceManager();
+  initBackground();
   initAnimations();
   initCharacters();
   initCamera();
@@ -57,6 +61,12 @@ void Game::initResourceManager() {
   Logger::info("Resource manager initialized.");
 }
 
+void Game::initBackground() {
+  m_backgroundTexture =
+      m_resourceManager->getTexture(R::texture("the_grid.jpeg"));
+  Logger::info("Background initialized.");
+}
+
 void Game::initAnimations() {
   auto texture = m_resourceManager->getTexture(R::texture("alex.png"));
 
@@ -79,14 +89,20 @@ void Game::initAnimations() {
 }
 
 void Game::initCharacters() {
-  m_player = std::make_unique<Character>(m_animatorPlayer.get());
-  m_enemy = std::make_unique<Character>(m_animatorEnemy.get());
+  m_player = std::make_unique<Character>(m_animatorPlayer.get(), m_config);
+  m_enemy = std::make_unique<Character>(m_animatorEnemy.get(), m_config);
 
-  m_enemy_agent = std::make_unique<RLAgent>(m_enemy.get());
-  m_player_agent = std::make_unique<RLAgent>(m_player.get());
+  m_enemy_agent = std::make_unique<RLAgent>(m_enemy.get(), m_config);
+  m_player_agent = std::make_unique<RLAgent>(m_player.get(), m_config);
 
-  m_player->mover.position = Vector2f(100, 100);
-  m_enemy->mover.position = Vector2f(400, 100);
+  SDL_Rect playerRect = m_player->animator->getCurrentFrameRect();
+  SDL_Rect enemyRect = m_enemy->animator->getCurrentFrameRect();
+
+  float playerY = m_config.groundLevel - playerRect.h;
+  float enemyY = m_config.groundLevel - enemyRect.h;
+
+  m_player->mover.position = Vector2f(200, playerY);
+  m_enemy->mover.position = Vector2f(600, enemyY);
 }
 
 void Game::initCamera() {
@@ -184,9 +200,9 @@ void Game::run() {
 
     processInput();
 
-    size_t steps = m_combatSystem.trainingMode() ? 1000
-                   : m_headlessMode              ? 100
-                                                 : 1;
+    size_t steps = m_combatSystem->trainingMode() ? 1000
+                   : m_headlessMode               ? 100
+                                                  : 1;
     for (size_t i = 0; i < steps; ++i) {
       update(m_deltaTime);
     }
@@ -225,9 +241,9 @@ void Game::update(float deltaTime) {
 
   deltaTime *= m_timeScale;
 
-  m_combatSystem.update(deltaTime, *m_player, *m_enemy);
+  m_combatSystem->update(deltaTime, *m_player, *m_enemy);
 
-  if (m_combatSystem.isRoundActive()) {
+  if (m_combatSystem->isRoundActive()) {
 
     if (m_playerControl.enabled) {
       switch (m_playerControl.mode) {
@@ -289,52 +305,75 @@ void Game::update(float deltaTime) {
                                         m_enemy->getHitboxRect())) {
       CollisionSystem::resolveCollision(*m_player, *m_enemy);
       CollisionSystem::applyCollisionImpulse(*m_player, *m_enemy,
-                                             m_config.defaultMoveForce);
+                                             m_config.moveForce);
     }
   } else {
-    m_combatSystem.startNewRound(*m_player, *m_enemy);
+    m_combatSystem->startNewRound(*m_player, *m_enemy);
   }
 }
 
 void Game::handleEnemyInput() {
   if (Input::isKeyDown(SDL_SCANCODE_D))
-    m_enemy->mover.applyForce(Vector2f(-m_config.defaultMoveForce, 0));
+    m_enemy->mover.applyForce(Vector2f(-m_config.moveForce, 0));
   if (Input::isKeyDown(SDL_SCANCODE_G))
-    m_enemy->mover.applyForce(Vector2f(m_config.defaultMoveForce, 0));
+    m_enemy->mover.applyForce(Vector2f(m_config.moveForce, 0));
   if (Input::isKeyDown(SDL_SCANCODE_R))
     m_enemy->attack();
   if (Input::isKeyDown(SDL_SCANCODE_T))
     m_enemy->block();
   if (Input::isKeyDown(SDL_SCANCODE_F) && m_enemy->onGround &&
-      m_enemy->groundFrames >= STABLE_GROUND_FRAMES) {
+      m_enemy->groundFrames >= m_config.stableGroundFrames) {
     m_enemy->jump();
   }
 }
 
 void Game::updateCamera(float deltaTime) {
+
   Vector2f midpoint =
       (m_player->mover.position + m_enemy->mover.position) * 0.5f;
-  m_camera.targetPosition = midpoint;
+
+  float groundOffset = (m_config.groundLevel - midpoint.y) * 0.2f;
+  midpoint.y += groundOffset;
 
   float dist = (m_player->mover.position - m_enemy->mover.position).length();
-  float t = clamp((dist - m_config.minDistance) /
-                      (m_config.maxDistance - m_config.minDistance),
-                  0.0f, 1.0f);
-  m_camera.targetScale =
-      m_config.maxZoom + (m_config.minZoom - m_config.maxZoom) * t;
 
-  m_camera.position.x += (m_camera.targetPosition.x - m_camera.position.x) *
-                         m_config.cameraSmoothFactor;
-  m_camera.position.y += (m_camera.targetPosition.y - m_camera.position.y) *
-                         m_config.cameraSmoothFactor;
-  m_camera.scale +=
-      (m_camera.targetScale - m_camera.scale) * m_config.cameraSmoothFactor;
+  float desiredZoom = m_camera.defaultZoom;
+  if (dist > m_camera.focusMarginX * 2) {
+    float zoomFactor =
+        (dist - m_camera.focusMarginX * 2) / m_camera.focusMarginX;
+    desiredZoom = m_camera.defaultZoom - (zoomFactor * 0.2f);
+    desiredZoom = std::max(desiredZoom, m_camera.minZoom);
+  }
+
+  m_camera.targetScale = desiredZoom;
+  m_camera.scale = lerp(m_camera.scale, m_camera.targetScale,
+                        deltaTime * m_camera.zoomSpeed);
+
+  Vector2f targetPos = midpoint;
+
+  targetPos.x = clamp(
+      targetPos.x,
+      m_camera.boundaryLeft + m_config.windowWidth * 0.5f / m_camera.scale,
+      m_camera.boundaryRight - m_config.windowWidth * 0.5f / m_camera.scale);
+
+  targetPos.y = clamp(
+      targetPos.y,
+      m_camera.boundaryTop + m_config.windowHeight * 0.5f / m_camera.scale,
+      m_camera.boundaryBottom - m_config.windowHeight * 0.5f / m_camera.scale);
+
+  m_camera.targetPosition = targetPos;
+  m_camera.position = lerp(m_camera.position, m_camera.targetPosition,
+                           deltaTime * m_camera.moveSpeed);
 }
 
 void Game::render() {
+  Vector2f originalPos = m_camera.position;
+  m_camera.position += m_screenShake.offset;
 
   SDL_SetRenderDrawColor(m_renderer->get(), 50, 50, 50, 255);
   SDL_RenderClear(m_renderer->get());
+
+  renderBackground();
 
   Vector2f offset;
   offset.x = m_config.windowWidth * 0.5f - m_camera.position.x * m_camera.scale;
@@ -368,28 +407,56 @@ void Game::render() {
 
   m_enemy->renderWithCamera(m_renderer->get(), m_camera, m_config);
   m_player->renderWithCamera(m_renderer->get(), m_camera, m_config);
-  m_combatSystem.render(m_renderer->get());
+  m_combatSystem->render(m_renderer->get());
+
+  if (g_showDebugOverlay) {
+    DebugOverlay::renderGameZones(m_renderer->get(), m_camera, m_config);
+    DebugOverlay::renderCharacterInfo(m_renderer->get(), *m_player, m_camera,
+                                      m_config);
+    DebugOverlay::renderCharacterInfo(m_renderer->get(), *m_enemy, m_camera,
+                                      m_config);
+  }
 
   if (m_roundEnded) {
-    // Increase the round end timer.
+
     m_roundEndTimer += m_deltaTime;
-    // Slowly increase the zoom factor (for dramatic effect).
+
     m_zoomEffect = 1.0f + m_roundEndTimer * 0.5f;
 
-    // Set a dramatic slow frame rate or use a slow update for the zoom.
-    // For example, render text with a large font size scaled by m_zoomEffect.
     SDL_Color textColor = {255, 255, 255, 255};
 
-    // Assume you have a helper function to render centered text:
     drawCenteredText(m_renderer->get(), m_winnerText, m_config.windowWidth / 2,
                      m_config.windowHeight / 2, textColor, m_zoomEffect);
 
-    // If enough time has passed (say, 3 seconds), then start a new round.
     if (m_roundEndTimer >= 3.0f) {
-      m_combatSystem.startNewRound(*m_player, *m_enemy);
+      m_combatSystem->startNewRound(*m_player, *m_enemy);
       m_roundEnded = false;
     }
   }
+
+  m_camera.position = originalPos;
+}
+
+void Game::renderBackground() {
+
+  SDL_Rect bgRect = {0, 0, m_config.windowWidth, m_config.windowHeight};
+  SDL_RenderCopy(m_renderer->get(), m_backgroundTexture->get(), nullptr,
+                 &bgRect);
+
+  int groundY = m_config.groundLevel;
+  SDL_SetRenderDrawColor(m_renderer->get(), 100, 100, 100, 255);
+
+  int gridSpacing = 50;
+  int numLines = m_config.windowWidth / gridSpacing;
+
+  for (int i = 0; i <= numLines; i++) {
+    int x = i * gridSpacing;
+    SDL_RenderDrawLine(m_renderer->get(), x, groundY, x, groundY + 20);
+  }
+
+  SDL_SetRenderDrawColor(m_renderer->get(), 150, 150, 150, 255);
+  SDL_RenderDrawLine(m_renderer->get(), 0, groundY, m_config.windowWidth,
+                     groundY);
 }
 
 void Game::renderDebugUI() {
@@ -420,6 +487,7 @@ void Game::renderDebugUI() {
       ImGui::MenuItem("Debug Controls", nullptr, &m_showDebugWindow);
       ImGui::MenuItem("AI Debug", nullptr, &m_showAIDebug);
       ImGui::MenuItem("Performance", nullptr, &m_showPerformance);
+      ImGui::MenuItem("Config Editor", nullptr, &m_showConfigEditor);
       ImGui::EndMenu();
     }
     ImGui::EndMenuBar();
@@ -467,6 +535,9 @@ void Game::renderDebugUI() {
   if (m_showPerformance) {
     renderPerformanceWindow();
   }
+  if (m_showConfigEditor) {
+    ConfigEditor::render(m_config, m_showConfigEditor);
+  }
 }
 
 void Game::renderPerformanceWindow() {
@@ -498,8 +569,7 @@ void Game::renderAIDebugWindow() {
 
   static NeuralNetworkVisualizer *nnVisualizer = nullptr;
 
-  if (ImGui::CollapsingHeader("Neural Network Visualizer",
-                              ImGuiTreeNodeFlags_DefaultOpen)) {
+  if (ImGui::CollapsingHeader("Neural Network Visualizer")) {
     if (nnVisualizer == nullptr) {
       nnVisualizer =
           new NeuralNetworkVisualizer(m_player_agent->onlineDQN.get());
@@ -518,7 +588,7 @@ void Game::renderAIDebugWindow() {
 
     if (ImGui::Checkbox("Pause Game", &m_paused)) {
     }
-    if (ImGui::Checkbox("Training Mode", &m_combatSystem.trainingMode())) {
+    if (ImGui::Checkbox("Training Mode", &m_combatSystem->trainingMode())) {
     }
     if (ImGui::IsItemHovered())
       ImGui::SetTooltip("Toggle game pause. When paused, simulation stops.");
@@ -528,7 +598,12 @@ void Game::renderAIDebugWindow() {
     if (ImGui::IsItemHovered())
       ImGui::SetTooltip("Adjust the simulation speed. 1.0 = normal speed.");
 
-    ImGui::Checkbox("Show Hitboxes", &g_showHitboxes);
+    ImGui::Checkbox("Show Config Editor", &m_showConfigEditor);
+
+    if (ImGui::CollapsingHeader("Debug Visualization")) {
+      ImGui::Checkbox("Show Debug Overlay", &g_showDebugOverlay);
+    }
+
     if (ImGui::IsItemHovered())
       ImGui::SetTooltip(
           "Toggle rendering of character hitboxes for debugging.");
@@ -544,8 +619,7 @@ void Game::renderAIDebugWindow() {
       [this](const char *charId, CharacterControl &control, RLAgent *agent) {
         ImGui::PushID(charId);
 
-        if (ImGui::CollapsingHeader(control.name.c_str(),
-                                    ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::CollapsingHeader(control.name.c_str())) {
           ImGui::Indent();
 
           const char *modes[] = {"Human", "AI", "Disabled"};
@@ -747,4 +821,31 @@ void Game::setRoundEnd(const std::string &winnerText) {
   m_winnerText = winnerText;
   m_roundEndTimer = 0.0f;
   m_zoomEffect = 1.0f;
+}
+
+void Game::updateScreenEffects(float deltaTime) {
+
+  m_screenShake.update(deltaTime);
+
+  if (m_slowMotion.active) {
+    m_slowMotion.currentTime += deltaTime;
+    if (m_slowMotion.currentTime >= m_slowMotion.duration) {
+      m_slowMotion.active = false;
+      m_timeScale = 1.0f;
+    }
+  }
+}
+
+void Game::triggerScreenShake(float duration, float intensity) {
+  m_screenShake.duration = duration;
+  m_screenShake.intensity = intensity;
+  m_screenShake.currentTime = 0.0f;
+}
+
+void Game::triggerSlowMotion(float duration, float timeScale) {
+  m_slowMotion.duration = duration;
+  m_slowMotion.timeScale = timeScale;
+  m_slowMotion.currentTime = 0.0f;
+  m_slowMotion.active = true;
+  m_timeScale = timeScale;
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Config.hpp"
 #include "Game/Character.hpp"
 #include <SDL.h>
 
@@ -8,7 +9,7 @@ public:
   static constexpr float NORMAL_ROUND_DURATION = 60.0f;
   static constexpr float TRAINING_ROUND_DURATION = 20.0f;
   //
-  CombatSystem();
+  CombatSystem(Config &config);
 
   void update(float deltaTime, Character &player, Character &enemy);
 
@@ -31,6 +32,7 @@ private:
 
   void renderRoundInfo(SDL_Renderer *renderer);
 
+  Config &m_config;
   float m_roundTime;
   bool m_isRoundActive;
   int m_roundCount;

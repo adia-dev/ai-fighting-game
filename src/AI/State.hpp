@@ -52,8 +52,8 @@ struct State {
   float opponentVelocityX; // Opponent’s horizontal velocity
   float opponentVelocityY; // Opponent’s vertical velocity
   bool isCornered;         // True if the agent is near the stage edge
-  std::array<ActionType, 3> lastActions; // Last 3 actions taken by the AI
-  std::array<ActionType, 3> opponentLastActions; // Last 3 opponent actions
+  std::array<ActionType, 10> lastActions; // Last 10 actions taken by the AI
+  std::array<ActionType, 10> opponentLastActions; // Last 10 opponent actions
 
   // A prediction of the opponent distance in near-future
   float predictedDistance;
