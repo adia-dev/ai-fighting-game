@@ -52,6 +52,8 @@ struct Layer {
   }
 };
 
+// TODO: Add more activation method for tests
+// SIMD ????????
 class NeuralNetwork {
 public:
   NeuralNetwork(int inputSize);

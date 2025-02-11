@@ -49,23 +49,18 @@ struct State {
   float timeSinceLastAction;
   float radar[4];
 
-  float opponentVelocityX; // Opponent’s horizontal velocity
-  float opponentVelocityY; // Opponent’s vertical velocity
-  bool isCornered;         // True if the agent is near the stage edge
-  std::array<ActionType, 10> lastActions; // Last 10 actions taken by the AI
-  std::array<ActionType, 10> opponentLastActions; // Last 10 opponent actions
+  float opponentVelocityX;
+  float opponentVelocityY;
+  bool isCornered;
+  std::array<ActionType, 10> lastActions;
+  std::array<ActionType, 10> opponentLastActions;
 
-  // A prediction of the opponent distance in near-future
   float predictedDistance;
 
-  // Current stance (for tactical adjustments)
   Stance currentStance;
 
-  // New: normalized stamina (0.0 - 1.0) and max stamina (could be 1.0 if
-  // normalized)
-  float myStamina; // e.g., current stamina normalized
-  float
-      myMaxStamina; // e.g., maximum stamina (could be always 1.0 if normalized)
+  float myStamina;
+  float myMaxStamina;
 };
 
 struct Action {
@@ -100,9 +95,8 @@ struct Experience {
 };
 
 struct BattleStyle {
-  float timePenalty;     // Penalty per time step (e.g., 0.004 for balanced)
-  float hpRatioWeight;   // Multiplier for health margin reward (e.g., 1.0 for
-                         // balanced)
-  float distancePenalty; // Penalty per unit deviation from optimal distance
-                         // (e.g., 0.0002 for balanced)
+  float timePenalty;
+  float hpRatioWeight;
+
+  float distancePenalty;
 };

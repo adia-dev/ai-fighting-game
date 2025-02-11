@@ -1,4 +1,4 @@
-// src/Core/SDLContext.hpp
+
 #pragma once
 #include "Core/Logger.hpp"
 #include <SDL.h>
@@ -22,7 +22,6 @@ public:
     }
     Logger::debug("SDL initialized successfully.");
 
-    // From 2.0.18: Enable native IME.
 #ifdef SDL_HINT_IME_SHOW_UI
     SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
 #endif

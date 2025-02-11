@@ -1,4 +1,5 @@
 #pragma once
+#include "AI/RLAgent.hpp"
 #include "Core/Config.hpp"
 #include "Game/Character.hpp"
 #include <SDL.h>
@@ -8,8 +9,8 @@ public:
   static constexpr float ROUND_DURATION = 60.0f;
   static constexpr float NORMAL_ROUND_DURATION = 60.0f;
   static constexpr float TRAINING_ROUND_DURATION = 20.0f;
-  //
-  CombatSystem(Config &config);
+
+  CombatSystem(Config &config, RLAgent *playerAgent, RLAgent *enemyAgent);
 
   void update(float deltaTime, Character &player, Character &enemy);
 
@@ -42,4 +43,7 @@ private:
   float m_timeSinceLastDamage = 0.0f;
   int m_lastPlayerHealth = 100;
   int m_lastEnemyHealth = 100;
+
+  RLAgent *m_enemyAgent = nullptr;
+  RLAgent *m_playerAgent = nullptr;
 };

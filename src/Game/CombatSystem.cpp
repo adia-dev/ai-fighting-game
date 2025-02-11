@@ -1,9 +1,11 @@
 #include "CombatSystem.hpp"
 #include "Core/Logger.hpp"
 
-CombatSystem::CombatSystem(Config &config)
+CombatSystem::CombatSystem(Config &config, RLAgent *playerAgent,
+                           RLAgent *enemyAgent)
     : m_config(config), m_roundTime(ROUND_DURATION), m_isRoundActive(true),
-      m_roundCount(0), m_playerWins(0), m_enemyWins(0) {}
+      m_roundCount(0), m_playerWins(0), m_enemyWins(0),
+      m_enemyAgent(enemyAgent), m_playerAgent(playerAgent) {}
 void CombatSystem::update(float deltaTime, Character &player,
                           Character &enemy) {
   if (!m_isRoundActive)
@@ -36,33 +38,50 @@ void CombatSystem::render(SDL_Renderer *renderer) {
 
 void CombatSystem::endRound(Character &player, Character &enemy) {
   m_isRoundActive = false;
+  bool playerWon = false;
 
   if (player.health <= 0) {
     Logger::info("Round " + std::to_string(m_roundCount) +
                  " ended - Enemy wins!");
     m_enemyWins++;
+    playerWon = false;
   } else if (enemy.health <= 0) {
     Logger::info("Round " + std::to_string(m_roundCount) +
                  " ended - Player wins!");
     m_playerWins++;
+    playerWon = true;
   } else {
-    if (player.health > enemy.health) {
+
+    float playerHealthPercent =
+        static_cast<float>(player.health) / player.maxHealth;
+    float enemyHealthPercent =
+        static_cast<float>(enemy.health) / enemy.maxHealth;
+
+    if (playerHealthPercent > enemyHealthPercent) {
       Logger::info("Round " + std::to_string(m_roundCount) +
                    " ended - Player wins on health!");
       m_playerWins++;
-    } else if (enemy.health > player.health) {
+      playerWon = true;
+    } else if (enemyHealthPercent > playerHealthPercent) {
       Logger::info("Round " + std::to_string(m_roundCount) +
                    " ended - Enemy wins on health!");
       m_enemyWins++;
+      playerWon = false;
     } else {
       Logger::info("Round " + std::to_string(m_roundCount) + " ended - Draw!");
+
+      playerWon = false;
     }
   }
 
-  Logger::info("Player Wins: %d/%d (%f)", m_playerWins, m_roundCount,
-               static_cast<float>(m_playerWins) / m_roundCount);
-  Logger::info("Enemy Wins: %d/%d (%f)", m_enemyWins, m_roundCount,
-               static_cast<float>(m_enemyWins) / m_roundCount);
+  if (m_playerAgent) {
+    m_playerAgent->reportWin(playerWon);
+    m_playerAgent->incrementEpisodeCount();
+  }
+  if (m_enemyAgent) {
+    m_enemyAgent->reportWin(!playerWon);
+    m_enemyAgent->incrementEpisodeCount();
+  }
 }
 
 void CombatSystem::resetCharacter(Character &character,

@@ -64,17 +64,14 @@ private:
 
   void setRoundEnd(const std::string &winnerText);
 
-  // Core configuration.
   Config m_config;
 
-  // RAII wrappers:
   SDLContext m_sdlContext;
   std::unique_ptr<Window> m_window;
   std::unique_ptr<Renderer> m_renderer;
   std::unique_ptr<ResourceManager> m_resourceManager;
   std::shared_ptr<Texture2D> m_backgroundTexture;
 
-  // Game objects:
   std::unique_ptr<Animator> m_animatorPlayer;
   std::unique_ptr<Animator> m_animatorEnemy;
   std::unique_ptr<Character> m_player;
@@ -107,10 +104,17 @@ private:
   bool m_paused = false;
 
   float m_trainingRenderTimer = 0.0f;
-  const float TRAINING_RENDER_INTERVAL = 0.1f; // Rend
+  const float TRAINING_RENDER_INTERVAL = 0.1f;
 
   FightSystem m_fightSystem;
   Camera m_camera;
   ScreenShake m_screenShake;
   SlowMotion m_slowMotion;
+
+  static constexpr int MAX_TRAINING_STEPS_PER_FRAME = 10;
+  static constexpr float TRAINING_TIME_STEP = 1.0f / 60.0f;
+
+  float m_trainingAccumulator = 0.0f;
+  int m_totalEpisodes = 0;
+  int m_trainingEpochLength = 100;
 };

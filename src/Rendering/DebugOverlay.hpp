@@ -12,7 +12,6 @@ public:
     Vector2f screenPos =
         worldToScreen(character.mover.position, camera, config);
 
-    // Create info text
     std::stringstream ss;
     ss << "Pos: (" << (int)character.mover.position.x << ", "
        << (int)character.mover.position.y << ")\n"
@@ -21,7 +20,6 @@ public:
        << "Animation: " << character.animator->getCurrentAnimationKey() << "\n"
        << "Combo: " << character.comboCount;
 
-    // Render text with slight offset from character
     SDL_Color textColor = {255, 255, 255, 255};
     drawText(renderer, ss.str(), (int)screenPos.x + 50, (int)screenPos.y - 80,
              textColor);
@@ -35,24 +33,19 @@ public:
         Vector2f(config.windowWidth - config.ai.deadzoneBoundary, 0), camera,
         config);
 
-    // Draw danger zones (red, semi-transparent)
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    // Left danger zone
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 64);
     SDL_Rect leftRect = {0, 0, (int)leftDanger.x, config.windowHeight};
     SDL_RenderFillRect(renderer, &leftRect);
 
-    // Right danger zone
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 64);
     SDL_Rect rightRect = {(int)rightDanger.x, 0,
                           config.windowWidth - (int)rightDanger.x,
                           config.windowHeight};
     SDL_RenderFillRect(renderer, &rightRect);
 
-    // Draw optimal range indicators
     SDL_SetRenderDrawColor(renderer, 0, 255, 0, 64);
-    // drawOptimalRangeCircle(renderer, camera, config);
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
   }

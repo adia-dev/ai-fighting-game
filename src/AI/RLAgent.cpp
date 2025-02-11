@@ -26,19 +26,19 @@ RLAgent::RLAgent(Character *character, Config &config)
       m_lastHealth(100), m_currentActionDuration(0), m_actionHoldDuration(0.2f),
       m_consecutiveWhiffs(0), m_lastOpponentHealth(0), m_epsilon(0.3f),
       m_learningRate(0.001f), m_discountFactor(0.95f), m_episodeCount(0),
-      updateCounter(0), m_wins(0), m_gen(m_rd()), m_dist(0.0f, 1.0f),
-      m_moveHoldCounter(0), m_currentStance(Stance::Neutral), m_comboCount(0),
-      m_config(config) {
+      updateCounter(0), m_wins(0), m_totalRounds(0), m_winRate(0.0f),
+      m_gen(m_rd()), m_dist(0.0f, 1.0f), m_moveHoldCounter(0),
+      m_currentStance(Stance::Neutral), m_comboCount(0), m_config(config) {
 
   state_dim = 14;
   num_actions = 9;
 
   onlineDQN = std::make_unique<NeuralNetwork>(state_dim);
-  onlineDQN->addLayer(64, ActivationType::Sigmoid);
+  onlineDQN->addLayer(64, ActivationType::ReLU);
   onlineDQN->addLayer(num_actions, ActivationType::None);
 
   targetDQN = std::make_unique<NeuralNetwork>(state_dim);
-  targetDQN->addLayer(64, ActivationType::Sigmoid);
+  targetDQN->addLayer(64, ActivationType::ReLU);
   targetDQN->addLayer(num_actions, ActivationType::None);
 
   m_battleStyle.timePenalty = 0.004f;
@@ -83,9 +83,6 @@ State RLAgent::getCurrentState(const Character &opponent) {
   Vector2f toOpponent = opponent.mover.position - m_character->mover.position;
   state.distanceToOpponent = toOpponent.length();
 
-  // Adjust relative X based on which way the character is facing.
-  // If the character is flipped (facing left), multiply by -1 so that
-  // "in front" always yields a positive number.
   int facing = m_character->animator->getFlip() ? -1 : 1;
   state.relativePositionX = toOpponent.x * facing;
   state.relativePositionY = toOpponent.y;
@@ -144,22 +141,20 @@ Action RLAgent::selectAction(const State &state) {
   auto q_values = onlineDQN->forward(state_vec);
   Action selectedAction;
 
-  // Increase exploration in dangerous situations
   float situationalEpsilon = m_epsilon;
   if (state.myHealth < 0.3f || state.isCornered) {
     situationalEpsilon *= 1.5f;
   }
 
   if (m_dist(m_gen) < situationalEpsilon) {
-    // Smart random action selection
+
     std::vector<ActionType> validActions;
     for (int i = 0; i < num_actions; i++) {
       validActions.push_back(static_cast<ActionType>(i));
     }
 
-    // Filter out obviously bad actions based on state
     if (state.isCornered) {
-      // Remove actions that would push further into corner
+
       float posX = m_character->mover.position.x;
       if (posX < 150.f) {
         validActions.erase(std::remove(validActions.begin(), validActions.end(),
@@ -173,7 +168,7 @@ Action RLAgent::selectAction(const State &state) {
     }
 
     if (m_character->stamina < 20.f) {
-      // Remove stamina-consuming actions when low
+
       validActions.erase(std::remove(validActions.begin(), validActions.end(),
                                      ActionType::Attack),
                          validActions.end());
@@ -182,7 +177,6 @@ Action RLAgent::selectAction(const State &state) {
                          validActions.end());
     }
 
-    // Select from remaining valid actions
     int randomIndex = static_cast<int>(m_dist(m_gen) * validActions.size());
     selectedAction = Action::fromType(validActions[randomIndex]);
   } else {
@@ -191,10 +185,8 @@ Action RLAgent::selectAction(const State &state) {
     selectedAction = Action::fromType(static_cast<ActionType>(bestAction));
   }
 
-  // Override actions in critical situations
   Action predictedOppAction = predictOpponentAction(state);
 
-  // Defensive overrides
   if (state.myHealth < state.opponentHealth * 0.3f ||
       m_currentStance == Stance::Defensive) {
     if (predictedOppAction.type == ActionType::Attack && m_dist(m_gen) < 0.8f) {
@@ -202,7 +194,6 @@ Action RLAgent::selectAction(const State &state) {
     }
   }
 
-  // Positioning overrides
   float posX = m_character->mover.position.x;
   if (posX < m_config.ai.deadzoneBoundary) {
     selectedAction = Action::fromType(ActionType::MoveRight);
@@ -210,7 +201,6 @@ Action RLAgent::selectAction(const State &state) {
     selectedAction = Action::fromType(ActionType::MoveLeft);
   }
 
-  // Record the Q-value for visualization
   if (static_cast<size_t>(selectedAction.type) < q_values.size()) {
     m_qValueHistory.push_back(q_values[static_cast<int>(selectedAction.type)]);
     if (m_qValueHistory.size() > 100) {
@@ -224,14 +214,11 @@ Action RLAgent::selectAction(const State &state) {
 float RLAgent::calculateReward(const State &state, const Action &action) {
   float reward = 0.0f;
 
-  // Base reward based on health differential
   float healthDiff = state.myHealth - state.opponentHealth;
   reward += healthDiff * m_config.ai.healthDiffReward;
 
-  // Position-based rewards/penalties
   float posX = m_character->mover.position.x;
 
-  // Strong penalty for being in deadzones
   if (posX < m_config.ai.deadzoneBoundary ||
       posX > m_config.windowWidth - m_config.ai.deadzoneBoundary) {
 
@@ -239,19 +226,16 @@ float RLAgent::calculateReward(const State &state, const Action &action) {
     float deadzoneDepth = std::min(m_config.ai.deadzoneBoundary,
                                    std::min(posX, m_config.windowWidth - posX));
 
-    // Exponential penalty based on how deep in the deadzone we are
     reward += m_config.ai.deadzoneBasePenalty +
               (1.0f - (deadzoneDepth / m_config.ai.deadzoneBoundary)) *
                   m_config.ai.deadzoneDepthPenalty;
 
-    // Extra penalty for moving further into the deadzone
     if ((posX < m_config.ai.deadzoneBoundary && action.moveLeft) ||
         (posX > m_config.windowWidth - m_config.ai.deadzoneBoundary &&
          action.moveRight)) {
       reward += m_config.ai.moveIntoDeadzonePenalty;
     }
 
-    // Reward for trying to escape the deadzone
     if ((posX < m_config.ai.deadzoneBoundary && action.moveRight) ||
         (posX > m_config.windowWidth - m_config.ai.deadzoneBoundary &&
          action.moveLeft)) {
@@ -259,19 +243,16 @@ float RLAgent::calculateReward(const State &state, const Action &action) {
     }
   }
 
-  // Optimal distance management
   float distanceToOpponent = state.distanceToOpponent;
   float distanceScore =
       -std::abs(distanceToOpponent - m_config.ai.optimalDistance) *
       m_config.ai.distanceMultiplier;
   reward += distanceScore;
 
-  // Combat rewards
   if (action.attack) {
     if (m_character->lastAttackLanded) {
       reward += m_config.ai.hitReward;
 
-      // Combo bonus
       if (!m_actionHistory.empty() && m_actionHistory.back() == action.type) {
         float comboMultiplier =
             std::min(m_config.ai.maxComboMultiplier,
@@ -279,21 +260,18 @@ float RLAgent::calculateReward(const State &state, const Action &action) {
         reward += m_config.ai.hitReward * comboMultiplier;
       }
 
-      // Extra reward for attacking while at optimal distance
       if (std::abs(distanceToOpponent - m_config.ai.optimalDistance) < 50.0f) {
         reward += m_config.ai.optimalDistanceBonus;
       }
     } else {
       reward += m_config.ai.missPenalty;
 
-      // Larger penalty for whiffing from far away
       if (distanceToOpponent > m_config.ai.optimalDistance * 1.5f) {
         reward += m_config.ai.farWhiffPenalty;
       }
     }
   }
 
-  // Defensive action rewards
   if (action.block) {
     if (m_character->lastBlockEffective) {
       reward += m_config.ai.blockReward;
@@ -305,7 +283,6 @@ float RLAgent::calculateReward(const State &state, const Action &action) {
     }
   }
 
-  // Stamina management
   if (m_character->stamina <= 0.0f) {
     reward += m_config.ai.noStaminaPenalty;
   } else if (m_character->stamina <
@@ -313,7 +290,6 @@ float RLAgent::calculateReward(const State &state, const Action &action) {
     reward += m_config.ai.lowStaminaPenalty;
   }
 
-  // Movement diversity
   if (m_actionHistory.size() >= 3) {
     bool sameAction =
         std::all_of(m_actionHistory.begin(), m_actionHistory.end(),
@@ -325,7 +301,6 @@ float RLAgent::calculateReward(const State &state, const Action &action) {
     }
   }
 
-  // Apply battle style modifiers
   reward -= m_battleStyle.timePenalty;
   reward += healthDiff * m_battleStyle.hpRatioWeight;
   reward -= std::abs(distanceToOpponent - m_config.ai.optimalDistance) *
@@ -365,33 +340,45 @@ void RLAgent::sampleAndTrain() {
   if (replayBuffer.size() < BATCH_SIZE)
     return;
 
-  // Copy experiences into a vector for random sampling.
-  std::vector<PrioritizedExperience> experiences;
-  while (!replayBuffer.empty()) {
-    experiences.push_back(replayBuffer.top());
+  // Sample batch
+  m_batchBuffer.clear();
+  std::vector<PrioritizedExperience> tempExperiences;
+
+  // Get top priority experiences
+  for (int i = 0; i < BATCH_SIZE && !replayBuffer.empty(); ++i) {
+    tempExperiences.push_back(replayBuffer.top());
     replayBuffer.pop();
   }
 
-  // Shuffle and select a mini-batch.
-  std::shuffle(experiences.begin(), experiences.end(), m_gen);
-  std::vector<PrioritizedExperience> batch;
-  for (size_t i = 0; i < BATCH_SIZE && i < experiences.size(); ++i)
-    batch.push_back(experiences[i]);
-
-  // Reinsert all experiences back into the replay buffer.
-  for (auto &exp : experiences)
+  // Restore experiences to priority queue
+  for (const auto &exp : tempExperiences) {
     replayBuffer.push(exp);
+  }
 
-  // Use the batch to update the network.
-  for (auto &pe : batch) {
-    auto s = stateToVector(pe.exp.state);
-    auto s_next = stateToVector(pe.exp.nextState);
-    auto current_q = onlineDQN->forward(s);
-    auto next_q = targetDQN->forward(s_next);
-    float max_next_q = *std::max_element(next_q.begin(), next_q.end());
-    int action_index = static_cast<int>(pe.exp.action.type);
-    current_q[action_index] = pe.exp.reward + m_discountFactor * max_next_q;
-    onlineDQN->train(s, current_q, m_learningRate);
+  // Process batch
+  std::vector<std::vector<float>> states;
+  std::vector<std::vector<float>> targetQ;
+
+  for (const auto &pe : tempExperiences) {
+    auto currentState = stateToVector(pe.exp.state);
+    auto nextState = stateToVector(pe.exp.nextState);
+
+    // Current Q-values
+    auto currentQ = onlineDQN->forward(currentState);
+    auto nextQ = targetDQN->forward(nextState);
+
+    // Update Q-value for taken action
+    float maxNextQ = *std::max_element(nextQ.begin(), nextQ.end());
+    int actionIndex = static_cast<int>(pe.exp.action.type);
+    currentQ[actionIndex] = pe.exp.reward + m_discountFactor * maxNextQ;
+
+    states.push_back(currentState);
+    targetQ.push_back(currentQ);
+  }
+
+  // Batch training
+  for (size_t i = 0; i < states.size(); ++i) {
+    onlineDQN->train(states[i], targetQ[i], m_learningRate);
   }
 }
 
@@ -462,10 +449,29 @@ Action RLAgent::predictOpponentAction(const State &state) {
   return Action::fromType(mostCommon);
 }
 
+void RLAgent::incrementEpisodeCount() { m_episodeCount++; }
+
 void RLAgent::reportWin(bool didWin) {
-  m_episodeCount++;
-  if (didWin)
+  m_totalRounds++;
+  if (didWin) {
     m_wins++;
+  }
+  // Update win rate, protecting against division by zero
+  m_winRate =
+      m_totalRounds > 0 ? static_cast<float>(m_wins) / m_totalRounds : 0.0f;
+
+  Logger::debug("Round ended - Wins: %d/%d (%.2f%%)", m_wins, m_totalRounds,
+                m_winRate * 100.0f);
+}
+
+void RLAgent::updateTargetNetwork() {
+  // Copy weights from online to target network
+  const auto &onlineLayers = onlineDQN->getLayers();
+  for (size_t i = 0; i < onlineLayers.size(); ++i) {
+    targetDQN->setLayerParameters(i, onlineLayers[i].weights,
+                                  onlineLayers[i].biases);
+  }
+  Logger::debug("Target network updated");
 }
 
 void RLAgent::trackActionHistory(ActionType action, bool isOpponent) {

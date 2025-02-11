@@ -24,14 +24,12 @@ public:
 
   bool processEvent(const SDL_Event &event);
 
-  // Game viewport management
   void createGameViewport(int width, int height);
   SDL_Texture *getGameViewportTexture();
   void beginGameViewportRender();
   void endGameViewportRender();
   void setupDefaultLayout();
 
-  // DPI Scale access
   float getDpiScale() const { return m_dpiScale; }
 
 private:
@@ -44,7 +42,6 @@ private:
   Config m_config;
   float m_dpiScale = 1.0f;
 
-  // Game viewport texture
   SDL_Texture *m_gameViewportTexture = nullptr;
   int m_gameViewportWidth = 0;
   int m_gameViewportHeight = 0;

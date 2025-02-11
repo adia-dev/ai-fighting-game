@@ -190,6 +190,19 @@ void Character::applyDamage(int damage, bool survive) {
 }
 
 void Character::update(float deltaTime) {
+  std::string currentAnim = animator->getCurrentAnimationKey();
+  if (currentAnim != "Idle" && currentAnim != "Walk") {
+    m_currentAnimationTimer += deltaTime;
+    if (m_currentAnimationTimer > MAX_ANIMATION_DURATION) {
+      Logger::debug("Animation '" + currentAnim +
+                    "' stuck for too long, reverting to Idle");
+      animator->play("Idle");
+      m_currentAnimationTimer = 0.0f;
+    }
+  } else {
+    m_currentAnimationTimer = 0.0f;
+  }
+
   SDL_Rect collRect = getHitboxRect();
   if (collRect.h == 0) {
     collRect = animator->getCurrentFrameRect();
@@ -234,10 +247,8 @@ void Character::update(float deltaTime) {
     animator->play("Idle");
   }
 
-  // Update jump animation
   updateJumpAnimation();
 
-  // If we just landed, play landing animation
   if (onGround && animator->getCurrentAnimationKey() == "Landing") {
     if (animator->isAnimationFinished()) {
       animator->play("Idle");
@@ -337,43 +348,40 @@ void Character::renderWithCamera(SDL_Renderer *renderer, const Camera &camera,
 }
 
 void Character::updateJumpAnimation() {
-  // Only update jump animation if we're actually in a jump state
+
   if (!onGround) {
     float vy = mover.velocity.y;
 
-    // Define velocity thresholds for different jump phases
     const float RISE_FAST = -500.0f;
     const float RISE_SLOW = -200.0f;
     const float FALL_SLOW = 200.0f;
     const float FALL_FAST = 500.0f;
 
-    // Get the current animation
     std::string currentAnim = animator->getCurrentAnimationKey();
 
-    // Determine which jump frame to show based on vertical velocity
     if (vy < RISE_FAST) {
-      // Initial jump phase - rising quickly
+
       animator->play("Jump");
       animator->setFrameIndex(0);
     } else if (vy < RISE_SLOW) {
-      // Slowing ascent
+
       animator->play("Jump");
       animator->setFrameIndex(2);
     } else if (vy > FALL_FAST) {
-      // Fast falling
+
       animator->play("Jump");
       animator->setFrameIndex(4);
     } else if (vy > FALL_SLOW) {
-      // Beginning to fall
+
       animator->play("Jump");
       animator->setFrameIndex(3);
     } else {
-      // Peak of jump (low vertical velocity)
+
       animator->play("Jump");
       animator->setFrameIndex(2);
     }
   } else if (animator->getCurrentAnimationKey() == "Jump") {
-    // Landing
+
     animator->play("Landing");
   }
 }

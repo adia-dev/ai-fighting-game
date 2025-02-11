@@ -41,7 +41,6 @@ void CollisionSystem::applyCollisionImpulse(Character &a, Character &b,
   SDL_Rect rectA = a.getHitboxRect();
   SDL_Rect rectB = b.getHitboxRect();
 
-  // Compute centers of the collision rectangles.
   Vector2f centerA(rectA.x + rectA.w / 2.0f, rectA.y + rectA.h / 2.0f);
   Vector2f centerB(rectB.x + rectB.w / 2.0f, rectB.y + rectB.h / 2.0f);
   Vector2f collisionNormal = (centerB - centerA).normalized();

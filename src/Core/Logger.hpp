@@ -23,7 +23,7 @@ class Logger {
 
   struct LoggerConfig {
     LogLevel level = LogLevel::Info;
-    // std::string log_file = std::string(LOG_DIR) + "/app.log";
+
     bool enable_colors = true;
   };
 
@@ -166,17 +166,17 @@ private:
   const char *level_color_code(LogLevel level) {
     switch (level) {
     case LogLevel::Trace:
-      return "\033[37m"; // White
+      return "\033[37m";
     case LogLevel::Debug:
-      return "\033[36m"; // Cyan
+      return "\033[36m";
     case LogLevel::Info:
-      return "\033[32m"; // Green
+      return "\033[32m";
     case LogLevel::Warn:
-      return "\033[33m"; // Yellow
+      return "\033[33m";
     case LogLevel::Error:
-      return "\033[31m"; // Red
+      return "\033[31m";
     case LogLevel::Fatal:
-      return "\033[1;31m"; // Bold Red
+      return "\033[1;31m";
     default:
       return "";
     }

@@ -21,8 +21,7 @@ loadAnimation(const std::string &jsonFilePath) {
   ifs >> j;
 
   std::map<std::string, Animation> animations;
-  // We assume the JSON contains an "animations" array; take the first
-  // animation.
+
   if (!j.contains("animations") || !j["animations"].is_array() ||
       j["animations"].empty())
     throw std::runtime_error("Invalid JSON: no animations found");
@@ -33,16 +32,15 @@ loadAnimation(const std::string &jsonFilePath) {
     animation.name = name;
     animation.loop = animJson.value("loop", true);
 
-    // Get the frames array.
     if (!animJson.contains("frames") || !animJson["frames"].is_array())
       throw std::runtime_error("Invalid JSON: no frames array");
 
     for (auto &frameJson : animJson["frames"]) {
       if (!frameJson.value("enabled", false))
-        continue; // Skip disabled frames.
+        continue;
 
       Frame frame;
-      // Read the top-level rectangle data.
+
       frame.frameRect.x = frameJson["x"].get<int>();
       frame.frameRect.y = frameJson["y"].get<int>();
       frame.frameRect.w = frameJson["w"].get<int>();
@@ -50,17 +48,15 @@ loadAnimation(const std::string &jsonFilePath) {
       frame.flipped = frameJson.value("flipped", false);
       frame.phase = frameJson.value("phase", FramePhase::None);
 
-      // Duration (in ms) from frame_data->metadata->duration_ms.
       if (frameJson.contains("frame_data") &&
           frameJson["frame_data"].contains("metadata") &&
           frameJson["frame_data"]["metadata"].contains("duration_ms")) {
         frame.duration_ms =
             frameJson["frame_data"]["metadata"]["duration_ms"].get<float>();
       } else {
-        frame.duration_ms = 100.0f; // default value
+        frame.duration_ms = 100.0f;
       }
 
-      // Process hitboxes from frame_data->hitboxes array.
       if (frameJson.contains("frame_data") &&
           frameJson["frame_data"].contains("hitboxes") &&
           frameJson["frame_data"]["hitboxes"].is_array()) {
@@ -74,7 +70,7 @@ loadAnimation(const std::string &jsonFilePath) {
           hitbox.w = hbJson["w"].get<int>();
           hitbox.h = hbJson["h"].get<int>();
           hitbox.enabled = true;
-          // Get the hitbox data type from custom_data (if available).
+
           std::string hibtox_data_type_id = hitbox.id + "_data_type";
           if (frameJson["frame_data"].contains("custom_data") &&
               frameJson["frame_data"]["custom_data"].contains(

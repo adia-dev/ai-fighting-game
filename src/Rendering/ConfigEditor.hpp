@@ -1,4 +1,3 @@
-// ConfigEditor.hpp
 #pragma once
 #include "Core/Config.hpp"
 #include "Game/Game.hpp"

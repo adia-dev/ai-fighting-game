@@ -28,7 +28,6 @@
 
 void Game::init() {
   Logger::init();
-  m_combatSystem = std::make_unique<CombatSystem>(m_config);
   initWindow();
   initRenderer();
   initResourceManager();
@@ -36,6 +35,9 @@ void Game::init() {
   initAnimations();
   initCharacters();
   initCamera();
+
+  m_combatSystem = std::make_unique<CombatSystem>(
+      m_config, m_player_agent.get(), m_enemy_agent.get());
 
   static GuiContext::Config config;
   config.iniFilename = R::config("game_imgui.ini");
@@ -188,11 +190,34 @@ void Game::run() {
 
     processInput();
 
-    size_t steps = m_headlessMode                   ? 1000
-                   : m_combatSystem->trainingMode() ? 100
-                                                    : 1;
+    // Training mode improvements
+    if (m_combatSystem->trainingMode()) {
+      m_trainingAccumulator += m_deltaTime;
 
-    for (size_t i = 0; i < steps; ++i) {
+      int stepsThisFrame = 0;
+      while (m_trainingAccumulator >= TRAINING_TIME_STEP &&
+             stepsThisFrame < MAX_TRAINING_STEPS_PER_FRAME) {
+
+        update(TRAINING_TIME_STEP);
+        m_trainingAccumulator -= TRAINING_TIME_STEP;
+        stepsThisFrame++;
+
+        // Check if episode ended
+        if (!m_combatSystem->isRoundActive()) {
+          m_totalEpisodes++;
+
+          // Every m_trainingEpochLength episodes, perform model updates
+          if (m_totalEpisodes % m_trainingEpochLength == 0) {
+            if (m_player_agent)
+              m_player_agent->updateTargetNetwork();
+            if (m_enemy_agent)
+              m_enemy_agent->updateTargetNetwork();
+            Logger::info("Training epoch completed. Episodes: " +
+                         std::to_string(m_totalEpisodes));
+          }
+        }
+      }
+    } else {
       update(m_deltaTime);
     }
 
@@ -596,7 +621,7 @@ void Game::renderAIDebugWindow() {
     if (ImGui::IsItemHovered())
       ImGui::SetTooltip("Toggle game pause. When paused, simulation stops.");
 
-    if (ImGui::SliderFloat("Time Scale", &m_timeScale, 0.1f, 3.0f, "%.1fx")) {
+    if (ImGui::SliderFloat("Time Scale", &m_timeScale, 0.1f, 50.0f, "%.1fx")) {
     }
     if (ImGui::IsItemHovered())
       ImGui::SetTooltip("Adjust the simulation speed. 1.0 = normal speed.");

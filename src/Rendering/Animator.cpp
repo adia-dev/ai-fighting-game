@@ -40,10 +40,8 @@ void Animator::update(float deltaTime) {
     return;
   }
 
-  // Accumulate time more precisely
   m_timer += deltaTime * 1000.0f;
 
-  // Track how many frames we need to advance
   while (m_timer >=
          m_currentAnimation.frames[m_currentFrameIndex].duration_ms) {
     m_timer -= m_currentAnimation.frames[m_currentFrameIndex].duration_ms;
@@ -54,7 +52,7 @@ void Animator::update(float deltaTime) {
           static_cast<int>(m_currentAnimation.frames.size())) {
         if (m_currentAnimation.loop) {
           m_currentFrameIndex = 0;
-          // Signal animation completion for non-looping animations
+
           m_completedOnce = true;
         } else {
           m_currentFrameIndex = m_currentAnimation.frames.size() - 1;
@@ -100,12 +98,11 @@ void Animator::render(SDL_Renderer *renderer, int x, int y, float scale) {
   SDL_RenderCopyEx(renderer, m_texture, &frame.frameRect, &dest, 0.0, nullptr,
                    flip);
 
-  // Debug: Draw hitboxes
   for (const auto &hitbox : frame.hitboxes) {
     if (g_showDebugOverlay && hitbox.enabled) {
       SDL_Rect hitRect;
       if (m_flip) {
-        // Mirror the hitbox relative to the frame width when flipped
+
         hitRect.x =
             x + static_cast<int>((frame.frameRect.w - (hitbox.x + hitbox.w)) *
                                  scale);
@@ -116,7 +113,6 @@ void Animator::render(SDL_Renderer *renderer, int x, int y, float scale) {
       hitRect.w = static_cast<int>(hitbox.w * scale);
       hitRect.h = static_cast<int>(hitbox.h * scale);
 
-      // Set color based on hitbox type
       switch (hitbox.type) {
       case HitboxType::Hit:
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);

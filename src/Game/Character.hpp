@@ -59,4 +59,6 @@ public:
 
 private:
   Config &m_config;
+  const float MAX_ANIMATION_DURATION = 2.0f;
+  float m_currentAnimationTimer = 0.0f;
 };
