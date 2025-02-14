@@ -1,77 +1,113 @@
-# Wasm Ball Z
+# Fighting Game Project
 
-## Overview
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/bd26ae13-45ae-463e-a161-8e0a934eba90" alt="Game Screenshot">
+</p>
 
-Wasm Ball Z is a 2D fighting game developed in C++ using SDL2. The project includes character management, sprite animation, basic AI using Q-learning, resource management, and game state handling.
+A 2D fighting game with neural network-powered AI opponents, built with SDL2 and ImGui.
 
-## Dependencies
+## Features
 
-- C++17 (or higher)
-- SDL2
-- SDL2_ttf
-- SDL2_image
-- TinyXML2
+- Real-time 2D combat system with combos, blocking, and special moves
+- Neural network AI opponents that learn and adapt
+- Debug visualization tools for AI decision making
+- Customizable character animations and hitboxes
+- Training mode for AI agents
+- Cross-platform support (Windows, macOS, Linux, Web)
 
-If building for the web with Emscripten, install the Emscripten SDK.
+<p align="center">
+  <video src="https://github.com/user-attachments/assets/d1e813ca-8c45-499a-a680-d0eafebd7052" alt="AI Debug Visualization">
+</p>
+
+
+## Prerequisites
+
+### Desktop Build
+- CMake 3.15+
+- C++17 compatible compiler
+- SDL2 development libraries
+- SDL2_image development libraries
+- SDL2_ttf development libraries
+
+### Web Build
+- Emscripten SDK
+- Python 3.x (for local development server)
 
 ## Building
 
-### Using CMake (Recommended)
-
-1. Clone the repository.
-2. Create and enter a build directory:
-   ```bash
-   mkdir build
-   cd build
-   ```
-3. Generate the build system:
-   ```bash
-   cmake ..
-   ```
-4. Build the project:
-   ```bash
-   make
-   ```
-
-### Manual Compilation (Linux Example)
-
-Compile the source files with a command similar to the following. Adjust include paths and library locations as needed:
+### Desktop Build
 
 ```bash
-g++ -std=c++17 \
-  -I/path/to/SDL2/include \
-  -I/path/to/SDL2_ttf/include \
-  -I/path/to/SDL2_image/include \
-  -I/path/to/tinyxml2 \
-  -o WasmBallZ \
-  src/main.cpp src/application/application.cpp src/entities/character/character.cpp src/entities/character/ai_character.cpp \
-  src/managers/game_manager/game_manager.cpp src/managers/input_manager/input_manager.cpp \
-  src/map/map.cpp src/sprite/sprite.cpp src/sprite/animator/animator.cpp \
-  src/window/window.cpp src/entities/agent/QLearningAgent.cpp \
-  -L/path/to/SDL2/lib -lSDL2 -lSDL2_ttf -lSDL2_image -ltinyxml2
+# Clone the repository
+git clone https://github.com/yourusername/fighting-game.git
+cd fighting-game
+
+# Create build directory
+mkdir build && cd build
+
+# Configure and build
+cmake ..
+make -j$(nproc)
+
+# Run the game
+./fighting-game
 ```
 
-Replace `/path/to/...` with the correct paths on your system.
-
-## Running
-
-After building, execute the application from the command line:
+### Web Build
 
 ```bash
-./WasmBallZ
+# Make sure you have sourced the Emscripten environment
+source /path/to/emsdk/emsdk_env.sh
+
+# Build using Emscripten makefile
+make -f Makefile.emscripten
+
+# Start local development server
+make -f Makefile.emscripten serve
 ```
 
-## Project Structure
+Then open `http://localhost:8000` in your web browser.
 
-- **src/**  
-  Contains the source code.
-  - **application/**: Application initialization and main loop.
-  - **entities/**: Character classes, AI logic, and other game entities.
-  - **managers/**: Resource management, input handling, and game management.
-  - **map/**: Map loading and rendering.
-  - **sprite/**: Sprite rendering and animation handling.
-  - **state/**: Game state definitions and management.
-  - **window/**: Window creation and renderer setup.
-  - **utils/**: Utility functions and resource path definitions.
-- **resources/**  
-  Contains textures, fonts, and animation XML files.
+## Controls
+
+- **Left/Right Arrow**: Move
+- **Space**: Jump
+- **A**: Attack
+- **B**: Block
+- **D**: Dash
+- **Tab**: Toggle Debug UI
+- **Escape**: Close Debug UI
+
+## Development
+
+### Adding New Features
+
+1. Character Animations:
+   - Add animation frames to `assets/animations/`
+   - Define hitboxes in animation JSON files
+   - Register animations in `PiksyAnimationLoader`
+
+2. AI Behaviors:
+   - Extend the state space in `State.hpp`
+   - Add new action types in `ActionType`
+   - Modify reward calculations in `RLAgent`
+
+## Configuration
+
+The game can be configured through:
+- Command line arguments
+- Config files in `assets/config/`
+- In-game debug UI
+
+Key configuration options include:
+- Physics parameters
+- AI learning rates
+- Combat mechanics
+- Graphics settings
+
+
+## Acknowledgments
+
+- SDL2 development team
+- Dear ImGui library
+- [Piksy](https://github.com/yourusername/piksy) for animation tooling
