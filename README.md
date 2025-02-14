@@ -39,18 +39,16 @@ A 2D fighting game with neural network-powered AI opponents, built with SDL2 and
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/fighting-game.git
-cd fighting-game
+git clone https://github.com/adia-dev/ai-fighting-game.git
+cd ai-fighting-game
 
-# Create build directory
-mkdir build && cd build
-
-# Configure and build
-cmake ..
+# build directory
+make
+# or
 make -j$(nproc)
 
 # Run the game
-./fighting-game
+./build/Debug/bin/fighting-game
 ```
 
 ### Web Build
