@@ -29,6 +29,23 @@ public:
   void reportWin(bool didWin);
   void incrementEpisodeCount();
 
+  void setEpsilonParameters(float start, float min, float decay) {
+    m_epsilon_start = start;
+    m_epsilon_min = min;
+    m_epsilon_decay = decay;
+  }
+
+  void setTrainingParameters(float gamma, float tau, float reward_scale) {
+    m_gamma = gamma;
+    m_tau = tau;
+    m_reward_scale = reward_scale;
+  }
+
+  void setPERParameters(float alpha, float beta) {
+    m_per_alpha = alpha;
+    m_per_beta = beta;
+  }
+
   float getEpsilon() const { return m_epsilon; }
   float getLearningRate() const { return m_learningRate; }
   float getDiscountFactor() const { return m_discountFactor; }
@@ -126,4 +143,22 @@ private:
   Vector2f m_opponentVelocity;
 
   std::vector<Experience> m_batchBuffer;
+
+  float m_epsilon_min = 0.01f;
+  float m_epsilon_decay = 0.995f;
+  float m_epsilon_start = 1.0f;
+
+  float m_gamma = 0.99f;
+  float m_tau = 0.005f;
+  float m_reward_scale = 1.0f;
+
+  static constexpr size_t MIN_EXPERIENCES_BEFORE_TRAINING = 1000;
+  static constexpr float PRIORITY_EPSILON = 1e-6f;
+  float m_per_alpha = 0.6f;
+  float m_per_beta = 0.4f;
+
+  float calculatePriority(float td_error) const;
+  float calculateImportanceWeight(float priority, float max_priority) const;
+  void softUpdateTargetNetwork();
+  std::vector<float> getActionMask(const State &state) const;
 };

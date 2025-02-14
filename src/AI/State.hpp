@@ -1,6 +1,8 @@
 #pragma once
 
 #include <array>
+#include <vector>
+
 enum class ActionType {
   Noop,
   MoveLeft,
@@ -84,6 +86,32 @@ struct Action {
                 type == ActionType::MoveRightAttack);
     a.block = (type == ActionType::Block);
     return a;
+  }
+};
+
+struct StateNormalization {
+  static constexpr float MAX_DISTANCE = 1000.0f;
+  static constexpr float MAX_HEALTH = 100.0f;
+  static constexpr float MAX_STAMINA = 500.0f;
+  static constexpr float MAX_VELOCITY = 1000.0f;
+  static constexpr float MAX_TIME = 10.0f;
+
+  static std::vector<float> getNormalizationRanges() {
+    return {
+        MAX_DISTANCE, // distanceToOpponent
+        MAX_DISTANCE, // relativePositionX
+        MAX_DISTANCE, // relativePositionY
+        1.0f,         // myHealth (already normalized)
+        1.0f,         // opponentHealth (already normalized)
+        MAX_TIME,     // timeSinceLastAction
+        MAX_DISTANCE, MAX_DISTANCE, MAX_DISTANCE, MAX_DISTANCE, // radar values
+        MAX_VELOCITY, // opponentVelocityX
+        MAX_VELOCITY, // opponentVelocityY
+        1.0f,         // isCornered (already binary)
+        1.0f,         // currentStance (already normalized)
+        1.0f,         // myStamina (already normalized)
+        1.0f          // maxStamina (already normalized)
+    };
   }
 };
 

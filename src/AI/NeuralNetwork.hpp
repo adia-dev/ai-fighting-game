@@ -1,4 +1,5 @@
 #pragma once
+#include "LayerNormalization.hpp"
 #include <cassert>
 #include <cmath>
 #include <random>
@@ -40,35 +41,38 @@ struct Layer {
   std::vector<std::vector<float>> weights;
   std::vector<float> biases;
 
-  // For storing forward-pass values.
   std::vector<float> lastInput;
   std::vector<float> lastZ;
   std::vector<float> lastOutput;
 
+  LayerNormalization normalization;
+  bool use_normalization;
+
   Layer(int inSize, int outSize, ActivationType act)
-      : inputSize(inSize), outputSize(outSize), activation(act) {
+      : inputSize(inSize), outputSize(outSize), activation(act),
+        normalization(outSize), use_normalization(true) {
     weights.resize(outSize, std::vector<float>(inSize, 0.0f));
     biases.resize(outSize, 0.0f);
   }
 };
 
-// TODO: Add more activation method for tests
-// SIMD ????????
 class NeuralNetwork {
 public:
   NeuralNetwork(int inputSize);
 
-  // Adds a new layer with the specified number of neurons and activation.
   void addLayer(int numNeurons, ActivationType activation);
 
-  // Forward propagation.
   std::vector<float> forward(const std::vector<float> &input);
 
-  // Train using simple gradient descent.
   void train(const std::vector<float> &input, const std::vector<float> &target,
              float learningRate);
 
-  // Accessor methods for visualization.
+  static std::vector<float> normalizeInput(const std::vector<float> &input,
+                                           const std::vector<float> &input_min,
+                                           const std::vector<float> &input_max);
+
+  void heInitialization(Layer &layer);
+
   const std::vector<Layer> &getLayers() const { return layers; }
   void clearLayers() { layers.clear(); }
   void setLayerParameters(size_t layerIndex,
@@ -86,4 +90,6 @@ private:
   std::vector<Layer> layers;
 
   void initializeLayer(Layer &layer, std::mt19937 &gen);
+  static void clipGradients(std::vector<std::vector<float>> &gradients,
+                            float max_norm = 5.0f);
 };

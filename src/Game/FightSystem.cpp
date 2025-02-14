@@ -38,7 +38,7 @@ bool FightSystem::processHit(Character &attacker, Character &defender) {
     hbRect.h = hb.h;
 
     if (CollisionSystem::checkCollision(hbRect, defenderBlockBox)) {
-      defender.applyDamage(15, true);
+      defender.applyDamage(25, true);
       defender.block();
       defender.lastBlockEffective = true;
       attacker.lastAttackLanded = false;
@@ -59,7 +59,7 @@ bool FightSystem::processHit(Character &attacker, Character &defender) {
       defender.lastBlockEffective = false;
 
       float baseImpulse = 500.0f;
-      defender.applyDamage(35 * attacker.comboCount * 1.25f);
+      defender.applyDamage(50 * attacker.comboCount * 1.25f);
       float knockbackForce = baseImpulse * (1.0f + attacker.comboCount * 0.1f);
       CollisionSystem::applyCollisionImpulse(attacker, defender,
                                              knockbackForce);

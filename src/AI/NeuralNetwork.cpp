@@ -23,7 +23,7 @@ void NeuralNetwork::initializeLayer(Layer &layer, std::mt19937 &gen) {
   std::normal_distribution<float> dist(0.0f, stddev);
   for (int i = 0; i < layer.outputSize; ++i) {
     for (int j = 0; j < layer.inputSize; ++j) {
-      layer.weights[i][j] = dist(gen);
+      layer.weights[i][j] = dist(gen) * 1e-3;
     }
     layer.biases[i] = 0.0f;
   }
@@ -85,5 +85,53 @@ void NeuralNetwork::train(const std::vector<float> &input,
       }
     }
     delta = deltaPrev;
+  }
+}
+void NeuralNetwork::heInitialization(Layer &layer) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  float std_dev = std::sqrt(2.0f / layer.inputSize);
+  std::normal_distribution<float> dist(0.0f, std_dev);
+
+  for (int i = 0; i < layer.outputSize; ++i) {
+    for (int j = 0; j < layer.inputSize; ++j) {
+      layer.weights[i][j] = dist(gen);
+    }
+    layer.biases[i] = 0.0f;
+  }
+}
+
+std::vector<float>
+NeuralNetwork::normalizeInput(const std::vector<float> &input,
+                              const std::vector<float> &input_min,
+                              const std::vector<float> &input_max) {
+  std::vector<float> normalized(input.size());
+  for (size_t i = 0; i < input.size(); ++i) {
+    float range = input_max[i] - input_min[i];
+    if (range > 0) {
+      normalized[i] = 2.0f * (input[i] - input_min[i]) / range - 1.0f;
+    } else {
+      normalized[i] = input[i];
+    }
+  }
+  return normalized;
+}
+void NeuralNetwork::clipGradients(std::vector<std::vector<float>> &gradients,
+                                  float max_norm) {
+  float total_norm = 0.0f;
+  for (const auto &grad_vec : gradients) {
+    for (float grad : grad_vec) {
+      total_norm += grad * grad;
+    }
+  }
+  total_norm = std::sqrt(total_norm);
+
+  if (total_norm > max_norm) {
+    float scale = max_norm / total_norm;
+    for (auto &grad_vec : gradients) {
+      for (float &grad : grad_vec) {
+        grad *= scale;
+      }
+    }
   }
 }

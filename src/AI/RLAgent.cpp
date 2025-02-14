@@ -34,12 +34,18 @@ RLAgent::RLAgent(Character *character, Config &config)
   num_actions = 9;
 
   onlineDQN = std::make_unique<NeuralNetwork>(state_dim);
-  onlineDQN->addLayer(64, ActivationType::ReLU);
+  onlineDQN->addLayer(64, ActivationType::Sigmoid);
   onlineDQN->addLayer(num_actions, ActivationType::None);
 
   targetDQN = std::make_unique<NeuralNetwork>(state_dim);
-  targetDQN->addLayer(64, ActivationType::ReLU);
+  targetDQN->addLayer(64, ActivationType::Sigmoid);
   targetDQN->addLayer(num_actions, ActivationType::None);
+
+  m_epsilon = 1.0f;
+  m_epsilon_min = 0.01f;
+  m_epsilon_decay = 0.995f;
+  m_learningRate = 0.0005f;
+  m_discountFactor = 0.99f;
 
   m_battleStyle.timePenalty = 0.004f;
   m_battleStyle.hpRatioWeight = 1.0f;
@@ -53,25 +59,25 @@ RLAgent::RLAgent(Character *character, Config &config)
 
 std::vector<float> RLAgent::stateToVector(const State &state) {
   std::vector<float> v;
-  v.push_back(state.distanceToOpponent);
-  v.push_back(state.relativePositionX);
-  v.push_back(state.relativePositionY);
+
+  std::vector<float> ranges = StateNormalization::getNormalizationRanges();
+
+  v.push_back(state.distanceToOpponent / ranges[0]);
+  v.push_back(state.relativePositionX / ranges[1]);
+  v.push_back(state.relativePositionY / ranges[2]);
   v.push_back(state.myHealth);
   v.push_back(state.opponentHealth);
-  v.push_back(state.timeSinceLastAction);
-  for (int i = 0; i < 4; ++i)
-    v.push_back(state.radar[i]);
-  v.push_back(state.opponentVelocityX);
-  v.push_back(state.opponentVelocityY);
+  v.push_back(state.timeSinceLastAction / ranges[5]);
+
+  for (int i = 0; i < 4; ++i) {
+    v.push_back(state.radar[i] / ranges[6 + i]);
+  }
+
+  v.push_back(state.opponentVelocityX / ranges[10]);
+  v.push_back(state.opponentVelocityY / ranges[11]);
+
   v.push_back(state.isCornered ? 1.0f : 0.0f);
-
-  for (auto action : state.lastActions)
-    v.push_back(static_cast<float>(action));
-  for (auto action : state.opponentLastActions)
-    v.push_back(static_cast<float>(action));
-  v.push_back(state.predictedDistance);
-  v.push_back(static_cast<float>(state.currentStance));
-
+  v.push_back(static_cast<float>(state.currentStance) / 2.0f);
   v.push_back(state.myStamina);
   v.push_back(state.myMaxStamina);
 
@@ -243,6 +249,19 @@ float RLAgent::calculateReward(const State &state, const Action &action) {
     }
   }
 
+  if (action.type == ActionType::Noop) {
+
+    if (state.distanceToOpponent < m_config.ai.optimalDistance * 0.8f ||
+        state.myHealth < state.opponentHealth) {
+      reward -= 5.0f;
+    }
+
+    if (!m_actionHistory.empty() &&
+        m_actionHistory.back() == ActionType::Noop) {
+      reward -= 10.0f;
+    }
+  }
+
   float distanceToOpponent = state.distanceToOpponent;
   float distanceScore =
       -std::abs(distanceToOpponent - m_config.ai.optimalDistance) *
@@ -330,56 +349,15 @@ void RLAgent::updateReplayBuffer(const Experience &exp) {
   int action_index = static_cast<int>(exp.action.type);
   float td_error = std::abs(exp.reward + m_discountFactor * max_next_q -
                             current_q[action_index]);
+
+  if (exp.action.type != ActionType::Noop) {
+    td_error *= 1.2f;
+  }
+
   PrioritizedExperience pe{exp, td_error};
   if (replayBuffer.size() >= MAX_REPLAY_BUFFER)
     replayBuffer.pop();
   replayBuffer.push(pe);
-}
-
-void RLAgent::sampleAndTrain() {
-  if (replayBuffer.size() < BATCH_SIZE)
-    return;
-
-  // Sample batch
-  m_batchBuffer.clear();
-  std::vector<PrioritizedExperience> tempExperiences;
-
-  // Get top priority experiences
-  for (int i = 0; i < BATCH_SIZE && !replayBuffer.empty(); ++i) {
-    tempExperiences.push_back(replayBuffer.top());
-    replayBuffer.pop();
-  }
-
-  // Restore experiences to priority queue
-  for (const auto &exp : tempExperiences) {
-    replayBuffer.push(exp);
-  }
-
-  // Process batch
-  std::vector<std::vector<float>> states;
-  std::vector<std::vector<float>> targetQ;
-
-  for (const auto &pe : tempExperiences) {
-    auto currentState = stateToVector(pe.exp.state);
-    auto nextState = stateToVector(pe.exp.nextState);
-
-    // Current Q-values
-    auto currentQ = onlineDQN->forward(currentState);
-    auto nextQ = targetDQN->forward(nextState);
-
-    // Update Q-value for taken action
-    float maxNextQ = *std::max_element(nextQ.begin(), nextQ.end());
-    int actionIndex = static_cast<int>(pe.exp.action.type);
-    currentQ[actionIndex] = pe.exp.reward + m_discountFactor * maxNextQ;
-
-    states.push_back(currentState);
-    targetQ.push_back(currentQ);
-  }
-
-  // Batch training
-  for (size_t i = 0; i < states.size(); ++i) {
-    onlineDQN->train(states[i], targetQ[i], m_learningRate);
-  }
 }
 
 void RLAgent::learn(const Experience &exp) {
@@ -413,10 +391,6 @@ void RLAgent::applyAction(const Action &action) {
     m_character->attack();
   if (action.block)
     m_character->block();
-}
-
-void RLAgent::decayEpsilon() {
-  m_epsilon = std::max(0.01f, m_epsilon * 0.995f);
 }
 
 void RLAgent::updateStance(const State &state) {
@@ -456,7 +430,7 @@ void RLAgent::reportWin(bool didWin) {
   if (didWin) {
     m_wins++;
   }
-  // Update win rate, protecting against division by zero
+
   m_winRate =
       m_totalRounds > 0 ? static_cast<float>(m_wins) / m_totalRounds : 0.0f;
 
@@ -465,7 +439,7 @@ void RLAgent::reportWin(bool didWin) {
 }
 
 void RLAgent::updateTargetNetwork() {
-  // Copy weights from online to target network
+
   const auto &onlineLayers = onlineDQN->getLayers();
   for (size_t i = 0; i < onlineLayers.size(); ++i) {
     targetDQN->setLayerParameters(i, onlineLayers[i].weights,
@@ -578,4 +552,129 @@ void RLAgent::startNewEpoch() {
   m_character->health = m_character->maxHealth;
   reset();
   Logger::info("Starting new epoch, reward reset.");
+}
+
+float RLAgent::calculatePriority(float td_error) const {
+
+  return std::pow(std::abs(td_error) + PRIORITY_EPSILON, m_per_alpha);
+}
+
+float RLAgent::calculateImportanceWeight(float priority,
+                                         float max_priority) const {
+
+  float normalized_priority = priority / max_priority;
+  return std::pow(normalized_priority, -m_per_beta);
+}
+
+void RLAgent::softUpdateTargetNetwork() {
+  const auto &online_layers = onlineDQN->getLayers();
+  const auto &target_layers = targetDQN->getLayers();
+
+  for (size_t i = 0; i < online_layers.size(); ++i) {
+    std::vector<std::vector<float>> new_weights = target_layers[i].weights;
+    std::vector<float> new_biases = target_layers[i].biases;
+
+    for (size_t j = 0; j < new_weights.size(); ++j) {
+      for (size_t k = 0; k < new_weights[j].size(); ++k) {
+        new_weights[j][k] = m_tau * online_layers[i].weights[j][k] +
+                            (1 - m_tau) * target_layers[i].weights[j][k];
+      }
+      new_biases[j] = m_tau * online_layers[i].biases[j] +
+                      (1 - m_tau) * target_layers[i].biases[j];
+    }
+
+    targetDQN->setLayerParameters(i, new_weights, new_biases);
+  }
+}
+
+std::vector<float> RLAgent::getActionMask(const State &state) const {
+  std::vector<float> mask(num_actions, 1.0f);
+
+  if (state.isCornered) {
+    float posX = m_character->mover.position.x;
+    if (posX < m_config.ai.deadzoneBoundary) {
+
+      mask[static_cast<int>(ActionType::MoveLeft)] = 0.0f;
+      mask[static_cast<int>(ActionType::MoveLeftAttack)] = 0.0f;
+    } else if (posX > m_config.windowWidth - m_config.ai.deadzoneBoundary) {
+
+      mask[static_cast<int>(ActionType::MoveRight)] = 0.0f;
+      mask[static_cast<int>(ActionType::MoveRightAttack)] = 0.0f;
+    }
+  }
+
+  if (state.myStamina < 0.2f) {
+    mask[static_cast<int>(ActionType::Attack)] = 0.0f;
+    mask[static_cast<int>(ActionType::JumpAttack)] = 0.0f;
+    mask[static_cast<int>(ActionType::MoveLeftAttack)] = 0.0f;
+    mask[static_cast<int>(ActionType::MoveRightAttack)] = 0.0f;
+  }
+
+  return mask;
+}
+
+void RLAgent::sampleAndTrain() {
+  if (replayBuffer.size() < MIN_EXPERIENCES_BEFORE_TRAINING) {
+    return;
+  }
+
+  std::vector<Experience> batch;
+  std::vector<float> priorities;
+  std::vector<float> weights;
+  float max_priority = replayBuffer.top().priority;
+
+  for (int i = 0; i < BATCH_SIZE && !replayBuffer.empty(); ++i) {
+    auto exp = replayBuffer.top();
+    batch.push_back(exp.exp);
+    priorities.push_back(exp.priority);
+    weights.push_back(calculateImportanceWeight(exp.priority, max_priority));
+    replayBuffer.pop();
+  }
+
+  float max_weight = *std::max_element(weights.begin(), weights.end());
+  for (auto &w : weights) {
+    w /= max_weight;
+  }
+
+  for (size_t i = 0; i < batch.size(); ++i) {
+    auto &experience = batch[i];
+
+    auto current_state = stateToVector(experience.state);
+    auto next_state = stateToVector(experience.nextState);
+
+    auto current_mask = getActionMask(experience.state);
+    auto next_mask = getActionMask(experience.nextState);
+
+    auto current_q = onlineDQN->forward(current_state);
+    auto next_q = targetDQN->forward(next_state);
+    auto online_next_q = onlineDQN->forward(next_state);
+
+    for (size_t j = 0; j < current_q.size(); ++j) {
+      current_q[j] *= current_mask[j];
+      next_q[j] *= next_mask[j];
+      online_next_q[j] *= next_mask[j];
+    }
+
+    int best_action =
+        std::max_element(online_next_q.begin(), online_next_q.end()) -
+        online_next_q.begin();
+    float next_q_value = next_q[best_action];
+
+    float scaled_reward = experience.reward * m_reward_scale;
+    float target = scaled_reward + m_gamma * next_q_value;
+
+    int action_index = static_cast<int>(experience.action.type);
+    current_q[action_index] = target;
+
+    float effective_lr = m_learningRate * weights[i];
+    onlineDQN->train(current_state, current_q, effective_lr);
+  }
+
+  softUpdateTargetNetwork();
+}
+
+void RLAgent::decayEpsilon() {
+  m_epsilon = std::max(m_epsilon_min, m_epsilon * m_epsilon_decay);
+
+  m_per_beta = std::min(1.0f, m_per_beta + 0.001f);
 }
