@@ -108,4 +108,4 @@ Key configuration options include:
 
 - SDL2 development team
 - Dear ImGui library
-- [Piksy](https://github.com/yourusername/piksy) for animation tooling
+- [Piksy](https://github.com/adia-dev/piksy) for animation tooling
